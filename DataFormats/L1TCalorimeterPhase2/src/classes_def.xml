@@ -66,6 +66,5 @@
   <class name="std::vector<l1tp2::rctIP1OutputLink>" />
   <class name="l1tp2::rctIP1OutputLinkCollection" />
   <class name="edm::Wrapper<l1tp2::rctIP1OutputLinkCollection>" />
-
 </lcgdict>
 
