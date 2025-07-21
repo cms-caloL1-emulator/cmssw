@@ -611,7 +611,7 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
 
         }
       }
-      break;
+      // break;
     }
   }
 
