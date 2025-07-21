@@ -12,6 +12,8 @@
 #include <fstream>
 #include <memory>
 
+#include <bitset>
+
 // user include files
 #include "FWCore/Framework/interface/stream/EDProducer.h"
 #include "FWCore/Framework/interface/Event.h"
@@ -54,6 +56,9 @@
 #include "L1Trigger/L1CaloTrigger/interface/Phase2L1CaloEGammaUtils.h"
 #include "L1Trigger/L1CaloTrigger/interface/Phase2L1RCT.h"
 #include "L1Trigger/L1CaloTrigger/interface/Phase2L1GCT.h"
+
+// RCT CMSSW - firmware interface
+#include "L1Trigger/L1CaloTrigger/interface/RCT_IO.h"
 
 // RCT IP1 header files and data formats
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP1.h"
@@ -560,7 +565,8 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
   edm::Handle<EcalEBTrigPrimDigiCollection> pcalohits;
   iEvent.getByToken(ecalTPEBToken_, pcalohits);
 
-  std::vector<p2eg::SimpleCaloHit> ecalhits;
+  // Initialize array of energies to all 0s
+  float crystalEnergies[p2rctIO::N_CARDS][p2rctIO::N_TOWERS_ETA*p2rctIO::CRYSTALS_IN_TOWER_ETA][p2rctIO::N_TOWERS_PHI*p2rctIO::CRYSTALS_IN_TOWER_PHI] = {{{ 0 }}};
 
   for (const auto& hit : *pcalohits.product()) {
     if (hit.encodedEt() > 0)  // hit.encodedEt() returns an int corresponding to 2x the crystal Et
@@ -571,31 +577,69 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
         continue;  // Reject hits with < 500 MeV ET
       }
 
+      // std::cout << "pcalohit energy: " << et << std::endl;
+
       // Get cell coordinates and info
       auto cell = ebGeometry->getGeometry(hit.id());
 
-      p2eg::SimpleCaloHit ehit;
-      ehit.setId(hit.id());
-      std::cout << "Trying to show positions in phi, eta, r space" << std::endl;
-      std::cout << "Phi: " << cell->getPosition().phi() << std::endl;
-      std::cout << "Eta: " << cell->getPosition().eta() << std::endl;
-      // std::cout << "R: " << cell->getPosition().R() << std::endl;
-      std::cout << "End of cell" << std::endl;
+      p2rctIO::SimpleCaloHit ehit;
       ehit.setPosition(GlobalVector(cell->getPosition().x(), cell->getPosition().y(), cell->getPosition().z()));
-      ehit.setEnergy(et);
-      ehit.setEt_uint(
-          (ap_uint<10>)hit.encodedEt() >>
-          2);  // also save the uint Et, this is to convert between 0.125 (in MC production) and 0.5 (in firmware based code)
-      ehit.setPt();
-      ecalhits.push_back(ehit);
+      ehit.setEt(et);
+
+      // std::cout << "ehit energy: " << ehit.et() << std::endl;
+      // std::cout << "ehit eta: " << ehit.position().eta() << std::endl;
+      // std::cout << "ehit phi: " << ehit.position().phi() << std::endl;
+
+      // Find the card that this hit is in
+      for(int cc = 0; cc < p2rctIO::N_CARDS; cc++) {
+        if (ehit.isInCard(cc)) {
+
+          // std::cout << "Hit is in card: " << cc << std::endl;
+
+          // Get the crystal iEta and iPhi, relative to the bottom left corner of the card
+          int local_iEta = ehit.crystalLocaliEta(cc);
+          int local_iPhi = ehit.crystalLocaliPhi(cc);
+
+          // std::cout << "Local iEta: " << local_iEta << std::endl;
+          // std::cout << "Local iPhi: " << local_iPhi << std::endl;
+
+          crystalEnergies[cc][local_iEta][local_iPhi] = crystalEnergies[cc][local_iEta][local_iPhi] + ehit.et();
+
+          // std::cout << "crystalEnergies local_iEta+1: " << crystalEnergies[cc][(local_iEta+1)%85][local_iPhi] << std::endl;
+          // std::cout << "crystalEnergies (local_iEta, local_iPhi): " << crystalEnergies[cc][local_iEta][local_iPhi] << std::endl;
+          // std::cout << "crystalEnergies local_iPhi+1: " << crystalEnergies[cc][local_iEta][(local_iPhi+1)%85] << std::endl;
+
+        }
+      }
+      break;
     }
   }
+
+  // Iterate through cells of crystalEnergies and fill a vector of p2rctIO::RCTcard objects
+
+  std::vector<p2rctIO::RCTcard> cardsECAL(p2rctIO::N_CARDS);
+
+  for(int cc=0; cc < p2rctIO::N_CARDS; cc++) {
+    for(int iEtaCrystalCard=0; iEtaCrystalCard < p2rctIO::N_TOWERS_ETA*p2rctIO::CRYSTALS_IN_TOWER_ETA; iEtaCrystalCard++) {
+      for(int iPhiCrystalCard=0; iPhiCrystalCard < p2rctIO::N_TOWERS_PHI*p2rctIO::CRYSTALS_IN_TOWER_PHI; iPhiCrystalCard++) {
+        float thisCrystalEnergy = crystalEnergies[cc][iEtaCrystalCard][iPhiCrystalCard];
+        cardsECAL[cc].addHit(thisCrystalEnergy, 0.0, 0, iEtaCrystalCard, iPhiCrystalCard);
+
+        // if (thisCrystalEnergy > 0.0) {
+          // std::cout << "Link local_iEta: " << (bitset<576>)cardsECAL[cc].getLink(iEtaCrystalCard/5, iPhiCrystalCard/5).Data() << std::endl;
+        // }
+      }
+    }
+  }
+  
+  // std::cout << "Card 0, link (0,0): " << (bitset<576>)cardsECAL[0].getLink(0, 0).Data() << std::endl;
+  // std::cout << "Card 23, link (16,5): " << (bitset<576>)cardsECAL[23].getLink(16, 5).Data() << std::endl;
 
   // Here, need to separate out the hits into the 5x6 and 2x6 areas
 
   // std::vector<ap_uint<576>> link_out[p2rctIP1::N_OUTPUT_LINKS];
 
-  // In here, transform ECAL hits to input link format, then apply p2rctIP1::algo_top using link_out
+  // Apply p2rctIP1::algo_top using link_out
 
   // iEvent.put(std::move(link_out), "LinkOut");
 }

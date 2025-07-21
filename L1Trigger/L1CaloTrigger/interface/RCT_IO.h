@@ -10,6 +10,8 @@
 #include <utility>
 #include <stdint.h>
 
+#include <bitset>
+
 namespace p2rctIO {
 
 static constexpr int N_BITS_CRYSTAL = 16;
@@ -17,6 +19,80 @@ static constexpr int N_BITS_ENERGY = 10;
 static constexpr int N_BITS_TIMING = 5;
 static constexpr int N_BITS_SPIKE = 1;
 static constexpr float LSB_ENERGY = 0.5;
+
+static constexpr int N_TOWERS_PHI = 6;
+static constexpr int N_TOWERS_ETA = 17;
+
+static constexpr int N_CARDS = 24;
+
+static constexpr int CRYSTALS_IN_TOWER_ETA = 5;
+static constexpr int CRYSTALS_IN_TOWER_PHI = 5;
+
+static constexpr float ECAL_ETA_RANGE = 1.4841;
+
+//////////////////////////////////////////////////////////////////////////
+  // RCT: indexing helper functions
+  //////////////////////////////////////////////////////////////////////////
+
+  // Assert that the card index is within bounds. (Valid cc: 0 to N_CARDS, since there are N_CARDS RCT cards)
+  inline bool isValidCard(int cc) { return ((cc > -1) && (cc < N_CARDS)); }
+
+  // RCT Cards: need to know their min/max crystal boundaries.
+
+  // For a card (ranging from 0 to N_CARDS, since there are N_CARDS cards), return the iEta of the crystal with max iEta.
+  // This represents the card boundaries in eta (identical to getEtaMax_card in the original emulator)
+  inline int getCard_iEtaMax(int cc) {
+    assert(isValidCard(cc));
+
+    int etamax = 0;
+    if (cc % 2 == 0)                                            // Even card: negative eta
+      etamax = (N_TOWERS_ETA * CRYSTALS_IN_TOWER_ETA - 1);  // First eta half. 5 crystals in eta in 1 tower.
+    else                                                        // Odd card: positive eta
+      etamax = (2 * N_TOWERS_ETA * CRYSTALS_IN_TOWER_ETA - 1);
+    return etamax;
+  }
+
+  // Same as above but for minimum iEta.
+  inline int getCard_iEtaMin(int cc) {
+    int etamin = 0;
+    if (cc % 2 == 0)  // Even card: negative eta
+      etamin = (0);
+    else  // Odd card: positive eta
+      etamin = (N_TOWERS_ETA * CRYSTALS_IN_TOWER_ETA);
+    return etamin;
+  }
+
+  // Same as above but for maximum iPhi.
+  inline int getCard_iPhiMax(int cc) {
+    int phimax = ((cc / 2) + 1) * N_TOWERS_PHI * CRYSTALS_IN_TOWER_PHI - 1;
+    return phimax;
+  }
+
+  // Same as above but for minimum iPhi.
+  inline int getCard_iPhiMin(int cc) {
+    int phimin = (cc / 2) * N_TOWERS_PHI * CRYSTALS_IN_TOWER_PHI;
+    return phimin;
+  }
+
+  // Given the RCT card number (0-N_CARDS), get the crystal iEta of the "bottom left" corner
+  inline int getCard_refCrystal_iEta(int cc) {
+    if ((cc % 2) == 1) {  // if cc is odd (positive eta)
+      return (N_TOWERS_ETA * CRYSTALS_IN_TOWER_ETA);
+    } else {  // if cc is even (negative eta) the bottom left corner is further in eta
+      return (N_TOWERS_ETA * CRYSTALS_IN_TOWER_ETA - 1);
+    }
+  }
+
+  // Given the RCT card number (0-N_CARDS), get the global crystal iPhi of the "bottom left" corner (0- 71*5)
+  inline int getCard_refCrystal_iPhi(int cc) {
+    if ((cc % 2) == 1) {
+      // if cc is odd: positive eta
+      return int(cc / 2) * N_TOWERS_PHI * CRYSTALS_IN_TOWER_PHI;
+    } else {
+      // if cc is even, the bottom left corner is further in phi, hence the +1 and -1
+      return (((int(cc / 2)+1) * N_TOWERS_PHI) * CRYSTALS_IN_TOWER_PHI) - 1;
+    }
+  }
 
 class linkECAL {
     private:
@@ -42,7 +118,7 @@ class linkECAL {
         (((ap_uint<16>)(spike)<<(N_BITS_ENERGY+N_BITS_TIMING)) & 0x1) ;
 
         // Put this crystal's 16 bits into the 576 bit data
-        int startId = (iEta%5)*5+(iPhi%5);
+        int startId = iEta*CRYSTALS_IN_TOWER_PHI+iPhi;
         int start = startId * N_BITS_CRYSTAL;
         ap_uint<576> shiftedCrystalData = (ap_uint<576>)crystalData<<start;
 
@@ -51,207 +127,119 @@ class linkECAL {
 
     inline void clearCrystal(int iEta, int iPhi) {
         // Find first bit corresponding to crystal at iEta, iPhi
-        int startId = (iEta%5)*5+(iPhi%5);
+        int startId = iEta*CRYSTALS_IN_TOWER_PHI+iPhi;
         int start = startId * N_BITS_CRYSTAL;
 
         ap_uint<576> spaceHolder = (ap_uint<576>)(0xFFFF)<<start; //16 1s, shifted to start at start
 
         this->data = this->data & ~spaceHolder; //Turn the 16 bits for this crystal to 0
     }
+
+    inline void clearAllCrystals(void) {
+        for(int i=0; i<CRYSTALS_IN_TOWER_ETA; i++) {
+            for(int j=0; j<CRYSTALS_IN_TOWER_PHI; j++) {
+                clearCrystal(i,j);
+            }
+        }
+    }
 };
 
-class ecalcrystal{
+class RCTcard {
+    private:
+    linkECAL links[N_TOWERS_ETA][N_TOWERS_PHI];
+
     public:
-    ap_uint<10> energy;
-    ap_uint<5> timing;
-    ap_uint<1> spike;
-    ap_uint<5> eta;
-    ap_uint<5> phi;
-
-    ecalcrystal(){
-        energy = 0;
-        timing = 0;
-        spike = 0;
-        eta = 0;
-        phi = 0;
+    //constructor
+    RCTcard() {
+        for(int iEta=0; iEta<N_TOWERS_ETA; iEta++) {
+            for(int iPhi=0; iPhi<N_TOWERS_PHI; iPhi++) {
+                links[iEta][iPhi] = linkECAL();
+            }
+        }
     }
 
-    inline ap_uint<16> getecalcrystal(void){
-    	ap_uint<16> data;
-      data  = 
-      ((ap_uint<16>)energy & 0x3FF) |
-      (((ap_uint<16>)timing)<<10 & 0x1F) |
-      (((ap_uint<16>)spike)<<15 & 0x1) ;
-      return data ;
+    inline void addHit(float energy, float timing, int spike, int iEtaCrystalCard, int iPhiCrystalCard) {
+        // Find which link(=tower) this hit is in
+        int iEtaTowerCard = iEtaCrystalCard/CRYSTALS_IN_TOWER_ETA;
+        int iPhiTowerCard = iPhiCrystalCard/CRYSTALS_IN_TOWER_PHI;
+
+        // Find which crystal within that tower it is
+        int iEtaCrystalTower = iEtaCrystalCard%CRYSTALS_IN_TOWER_ETA;
+        int iPhiCrystalTower = iPhiCrystalCard%CRYSTALS_IN_TOWER_PHI;
+
+        // Update that crystal within that link
+        links[iEtaTowerCard][iPhiTowerCard].setCrystal(energy, timing, spike, iEtaCrystalTower, iPhiCrystalTower);
+        // if (energy > 0.0) {
+          // std::cout << "Link output: " << (bitset<576>)links[iEtaTowerCard][iPhiTowerCard].Data() << std::endl;
+        // }
     }
 
-    ecalcrystal(ap_uint<16> i){
-    	this->energy = i.range(9, 0);
-    	this->timing = i.range(14, 10);
-    	this->spike = i.range(15, 15);
+    inline linkECAL getLink(int iEtaCrystalCard, int iPhiCrystalCard) {
+      // Return the link at iEtaCrystalCard, iPhiCrystalCard. int accessible via .Data() method
+      return links[iEtaCrystalCard][iPhiCrystalCard];
     }
-
-    inline void setecalcrystal(ap_uint<16> i, ap_uint<5> k, ap_uint<5> j){
-    	this->energy = i.range(9, 0);
-    	this->timing = i.range(14, 10);
-    	this->spike = i.range(15, 15);
-    	this->eta = k;
-    	this->phi = j;
-    }
-
-    ecalcrystal(const ecalcrystal& rhs){
-    energy=rhs.energy;
-    timing=rhs.timing;
-    spike=rhs.spike;
-    eta=rhs.eta;
-    phi=rhs.phi;
-    }
-
-    ecalcrystal& operator=(const ecalcrystal& rhs){
-    this->energy=rhs.energy;
-    this->timing=rhs.timing;
-    this->spike=rhs.spike;
-    this->eta=rhs.eta;
-    this->phi=rhs.phi;
-        return *this;
-    }
-
-    inline ap_uint<10> Energy(void) {return energy;}
-    inline ap_uint<5> Eta(void) {return eta;}
-    inline ap_uint<5> Phi(void) {return phi;}
 };
 
+/* 
+* Represents one input HCAL or ECAL hit.
+*/
+class SimpleCaloHit {
+    private:
+    float et_ = 0.;
+    GlobalVector position_;  // As opposed to GlobalPoint, so we can add them (for weighted average)
 
-class ecalcluster{
     public:
-    ap_uint<10> seedEnergy;
-    ap_uint<12> energy;
-    ap_uint<5> eta;
-    ap_uint<5> phi;
-    ap_uint<10> et5x5;
-    ap_uint<10> et2x5;
-    ap_uint<5> timing;
-    ap_uint<1> spike;
-    ap_uint<1> satur;
-    ap_uint<2> brems;
-    ap_uint<3> spare;
-    ap_uint<64> data;
+    // tool functions
+    inline void setEt(float et) { et_ = et; };
+    inline void setPosition(const GlobalVector& pos) { position_ = pos; };
 
-    ecalcluster(){
-        seedEnergy = 0;
-        energy = 0;
-        eta = 0;
-        phi = 0;
-        et5x5 = 0;
-        et2x5 = 0;
-        timing = 0;
-        spike = 0;
-        satur = 0;
-        brems = 0;
-        spare = 0;
-        data = 0;
+    inline float et() const { return et_; };
+    inline const GlobalVector& position() const { return position_; };
+
+    /* 
+       * Get crystal's iEta from real eta. (identical to getCrystal_etaID in L1EGammaCrystalsEmulatorProducer.cc)
+       * This "global" iEta ranges from 0 to (33*5) since there are 34 towers in eta in the full detector, 
+       * each with five crystals in eta.
+       */
+    int crystaliEta(void) const {
+      float size_cell = 2 * ECAL_ETA_RANGE / (CRYSTALS_IN_TOWER_ETA * 2 * N_TOWERS_ETA);
+      int iEta = int((position().eta() + ECAL_ETA_RANGE) / size_cell);
+      return iEta;
     }
 
-    ecalcluster& operator=(const ecalcluster& rhs){
-        seedEnergy = rhs.seedEnergy;
-        energy = rhs.energy;
-        eta = rhs.eta;
-        phi = rhs.phi;
-        et5x5 = rhs.et5x5;
-        et2x5 = rhs.et2x5;
-        timing = rhs.timing;
-        spike = rhs.spike;
-        satur = rhs.satur;
-        brems = rhs.brems;
-        spare = rhs.spare;
-        data = rhs.data;
-        return *this;
+    /* 
+       * Get crystal's iPhi from real phi. (identical to getCrystal_phiID in L1EGammaCrystalsEmulatorProducer.cc)
+       * This "global" iPhi ranges from 0 to (71*5) since there are 72 towers in phi in the full detector, each with five crystals in eta.
+       */
+    int crystaliPhi(void) const {
+      float phi = position().phi();
+      float size_cell = 2 * M_PI / (CRYSTALS_IN_TOWER_PHI * N_TOWERS_PHI * N_CARDS / 2);
+      int iPhi = int((phi + M_PI) / size_cell);
+      return iPhi;
     }
 
-    inline ap_uint<64> getecalcluster(void){
-      data = (seedEnergy) | 
-      (((ap_uint<64>) energy)  << 10) | 
-      (((ap_uint<64>) eta)  << 22) | 
-      (((ap_uint<64>) phi)  << 27) | 
-      (((ap_uint<64>) et5x5)       << 32) |
-      (((ap_uint<64>) et2x5)       << 42) |
-      (((ap_uint<64>) timing)       << 52) |
-      (((ap_uint<64>) spike)       << 57) |
-      (((ap_uint<64>) satur)       << 58) |
-      (((ap_uint<64>) brems)       << 59) |
-      (((ap_uint<64>) spare)       << 61);
-    return data ;
-    }
+    /*
+       * Check if it falls within the boundary of a card.
+       */
+    bool isInCard(int cc) const {
+      return (crystaliPhi() <= getCard_iPhiMax(cc) && crystaliPhi() >= getCard_iPhiMin(cc) &&
+              crystaliEta() <= getCard_iEtaMax(cc) && crystaliEta() >= getCard_iEtaMin(cc));
+    };
 
-    inline void fillecalcluster(ap_uint<64> i){
-    	this->seedEnergy = i.range(9, 0);
-    	this->energy = i.range(21, 10);
-    	this->eta = i.range(26, 22);
-    	this->phi = i.range(31, 27);
-    	this->et5x5 = i.range(41, 32);
-    	this->et2x5 = i.range(51, 42);
-    	this->timing = i.range(56, 52);
-    	this->spike = i.range(57, 57);
-    	this->satur = i.range(58, 58);
-    	this->brems = i.range(60, 59);
-    }
+    /*
+      * For a crystal with real eta, and falling in card cc, get its local iEta 
+      * relative to the bottom left corner of the card (possible local iEta ranges from 0 to N_TOWERS_ETA * CRYSTALS_IN_TOWER_ETA,
+      * since in one card, there are N_TOWERS_ETA towers in eta, each with CRYSTALS_IN_TOWER_ETA crystals in eta.
+      */
+    int crystalLocaliEta(int cc) const { return abs(getCard_refCrystal_iEta(cc) - crystaliEta()); }
 
-    ecalcluster(ap_uint<10> seedEnergy, ap_uint<12> energy, ap_uint<5> eta, ap_uint<5> phi, ap_uint<10> et5x5, ap_uint<10> et2x5, ap_uint<5> timing, ap_uint<1> spike, ap_uint<1> satur, ap_uint<2> brems, ap_uint<3> spare){
-        data = (seedEnergy) | 
-      (((ap_uint<64>) energy)  << 10) | 
-      (((ap_uint<64>) eta)  << 22) | 
-      (((ap_uint<64>) phi)  << 27) | 
-      (((ap_uint<64>) et5x5)       << 32) |
-      (((ap_uint<64>) et2x5)       << 42) |
-      (((ap_uint<64>) timing)       << 52) |
-      (((ap_uint<64>) spike)       << 57) |
-      (((ap_uint<64>) satur)       << 58) |
-      (((ap_uint<64>) brems)       << 59) |
-      (((ap_uint<64>) spare)       << 61);
-    }
-
-    inline ap_uint<12> Energy(void) {return energy;}
-    inline ap_uint<5> Eta(void) {return eta;}
-    inline ap_uint<5> Phi(void) {return phi;}
-    inline ap_uint<64> Data(void) {return data;}
-
-
+    /*
+      * Same as above, but for iPhi (possible local iPhi ranges from 0 to (N_TOWERS_PHI*CRYSTALS_IN_TOWER_PHI), since in one card,
+      * there are N_TOWERS_PHI towers in phi, each with CRYSTALS_IN_TOWER_PHI crystals in phi.
+      */
+    int crystalLocaliPhi(int cc) const { return abs(getCard_refCrystal_iPhi(cc) - crystaliPhi()); }
 };
 
-
-class ecaltower{
-    public:
-    ap_uint<12> energy;
-    ap_uint<5> timing;
-    ap_uint<1> spike;
-    ap_uint<18> data;
-
-    ecaltower(){
-        energy = 0;
-        timing = 0;
-        spike = 0;
-        data = 0;
-    }
-
-    ecaltower& operator=(const ecaltower& rhs){
-        energy = rhs.energy;
-        timing = rhs.timing;
-        spike = rhs.spike;
-        data = rhs.data;
-        return *this;
-    }
-
-    inline ap_uint<18> getecaltower(void){
-      data = (((ap_uint<18>) energy)  | 
-      (((ap_uint<18>) timing) << 12) |
-      (((ap_uint<18>) spike)  << 17)) ;
-    return data ;
-    }
-
-};
-
-void algo_top(ap_uint<576> link_in[N_INPUT_LINKS], ap_uint<576> link_out[N_OUTPUT_LINKS]);
-
-} // namespace p2rctIP1
+} // namespace p2rctIO
 
 #endif
