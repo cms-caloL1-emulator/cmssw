@@ -61,452 +61,19 @@
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IO.h"
 
 // RCT IP1 header files and data formats
-#include "L1Trigger/L1CaloTrigger/interface/RCT_IP1.h"
+#include "L1Trigger/L1CaloTrigger/interface/RCT_IP1_5x6_h.h"
+#include "L1Trigger/L1CaloTrigger/interface/RCT_IP1_5x6_cpp.h"
+#include "L1Trigger/L1CaloTrigger/interface/RCT_IP1_2x6_h.h"
+#include "L1Trigger/L1CaloTrigger/interface/RCT_IP1_2x6_cpp.h"
+#include "L1Trigger/L1CaloTrigger/interface/RCT_IP21_h.h"
+#include "L1Trigger/L1CaloTrigger/interface/RCT_IP21_cpp.h"
+#include "L1Trigger/L1CaloTrigger/interface/bitonicSort32_h.h"
+#include "L1Trigger/L1CaloTrigger/interface/bitonicSort32_cpp.h"
+#include "L1Trigger/L1CaloTrigger/interface/RCT_IP22_h.h"
+#include "L1Trigger/L1CaloTrigger/interface/RCT_IP22_cpp.h"
+#include "L1Trigger/L1CaloTrigger/interface/RCT_IP3_h.h"
+#include "L1Trigger/L1CaloTrigger/interface/RCT_IP3_cpp.h"
 #include "DataFormats/L1TCalorimeterPhase2/interface/RCT_IP1.h"
-
-//////////////////////////////////////////////////////////////////////////
-
-// Define algo_top for RCT IP1
-
-void processOutputLinks(p2rctIP1::ecalcluster ecalclustersH1[p2rctIP1::N_CLUSTERS], p2rctIP1::ecalcluster ecalclustersH2[p2rctIP1::N_CLUSTERS], p2rctIP1::ecalcluster ecalclustersH3[p2rctIP1::N_CLUSTERS], p2rctIP1::ecaltower ecaltowers[p2rctIP1::TOWERS_IN_ETA*p2rctIP1::TOWERS_IN_PHI], ap_uint<576> link_out[p2rctIP1::N_OUTPUT_LINKS]){
-
-ap_uint<10> start;
-ap_uint<10> end;
-
-for(p2rctIP1::loop i=0; i<p2rctIP1::N_CLUSTERS; i++){
-	start=i*64 ; end=start+63;
-	link_out[0].range(end, start) = ecalclustersH1[i].getecalcluster() ;
-	start=(3+i)*64 ; end=start+63;
-	link_out[0].range(end, start) = ecalclustersH2[i].getecalcluster() ;
-	start=(6+i)*64 ; end=start+63;
-    link_out[0].range(end, start) = ecalclustersH3[i].getecalcluster() ;
-}
-
-for(p2rctIP1::loop i=0; i<p2rctIP1::TOWERS_IN_ETA*p2rctIP1::TOWERS_IN_PHI; i++){
-	start=i*18 ; end=start+17;
-	link_out[1].range(end, start) = ecaltowers[i].getecaltower() ;
-}
-
-}
-
-void processInputLinks(ap_uint<576> link_in[p2rctIP1::N_INPUT_LINKS], p2rctIP1::ecalcrystal ecalcrystals[p2rctIP1::CRYSTALS_IN_ETA][p2rctIP1::CRYSTALS_IN_PHI]){
-
-ap_uint<6> wordId;
-ap_uint<6> startId;
-
-for(p2rctIP1::loop i=0; i<p2rctIP1::CRYSTALS_IN_ETA; i++){
-    for(p2rctIP1::loop j=0; j<p2rctIP1::CRYSTALS_IN_PHI; j++){
-    wordId  = (i/5)*6+(j/5);
-    startId = (i%5)*5+(j%5);
-    ap_uint<10> start   = startId*16;
-    ap_uint<10> end = start + 15;
-    ecalcrystals[i][j] = p2rctIP1::ecalcrystal(link_in[wordId].range(end, start));
-  }
-}
-
-}
-
-p2rctIP1::ecalcrystal  bestOf2(const p2rctIP1::ecalcrystal& ecaltp0, const p2rctIP1::ecalcrystal& ecaltp1) {
-
-p2rctIP1::ecalcrystal x;
-x = (ecaltp0.energy > ecaltp1.energy)?ecaltp0:ecaltp1;
-return x;
-
-}
-
-void getseedEta(p2rctIP1::ecalcrystal crystals[p2rctIP1::CRYSTALS_IN_PHI], p2rctIP1::ecalcrystal &EtaMax){
- 
-p2rctIP1::ecalcrystal Step1[p2rctIP1::CRYSTALS_IN_PHI/2+1];
-p2rctIP1::ecalcrystal Step2[p2rctIP1::CRYSTALS_IN_PHI/4+1];
-p2rctIP1::ecalcrystal Step3[p2rctIP1::CRYSTALS_IN_PHI/8+1];
-
-for(p2rctIP1::loop k=0; k<p2rctIP1::CRYSTALS_IN_PHI; k=k+2){
-	Step1[k/2]  = bestOf2(crystals[k], crystals[k+1]) ;
-}
-
-Step1[15] = Step1[14] ;
-
-for(p2rctIP1::loop k=0; k<p2rctIP1::CRYSTALS_IN_PHI/2+1; k=k+2){
-    Step2[k/2]  = bestOf2(Step1[k], Step1[k+1]) ;
-}
-
-for(p2rctIP1::loop k=0; k<p2rctIP1::CRYSTALS_IN_PHI/4+1; k=k+2){
-    Step3[k/2]  = bestOf2(Step2[k], Step2[k+1]) ;
-}
-
-p2rctIP1::ecalcrystal x1 = bestOf2(Step3[0], Step3[1]) ;
-p2rctIP1::ecalcrystal x2 = bestOf2(Step3[2], Step3[3]) ;
-        
-EtaMax  = bestOf2(x1,x2) ;
-
-}
-
-void getseedMax(p2rctIP1::ecalcrystal crystals[p2rctIP1::CRYSTALS_IN_ETA23], p2rctIP1::ecalcrystal &Seed) {
-
-p2rctIP1::ecalcrystal Step1[p2rctIP1::CRYSTALS_IN_ETA23/2+1] ;
-p2rctIP1::ecalcrystal Step2[p2rctIP1::CRYSTALS_IN_ETA23/4+1] ;
-
-for(p2rctIP1::loop k=0; k<p2rctIP1::CRYSTALS_IN_ETA23-1; k=k+2){
-	Step1[k/2]  = bestOf2(crystals[k+1], crystals[k]) ;
-}
-
-Step1[5]=crystals[10] ;
-
-for(p2rctIP1::loop k=0; k<p2rctIP1::CRYSTALS_IN_ETA23/2+1; k=k+2){
-    Step2[k/2]  = bestOf2(Step1[k], Step1[k+1]) ;
-}
-
-p2rctIP1::ecalcrystal x1 = bestOf2(Step2[0], Step2[1]) ;
-
-Seed  = bestOf2(x1, Step2[2]) ;
-
-}
-
-void getseedposition(p2rctIP1::ecalcrystal crystals[p2rctIP1::CRYSTALS_IN_ETA23][p2rctIP1::CRYSTALS_IN_PHI], p2rctIP1::ecalcrystal &Seed){
-
-p2rctIP1::ecalcrystal EtaSlices[p2rctIP1::CRYSTALS_IN_ETA23];
-p2rctIP1::ecalcrystal crystals1D[p2rctIP1::CRYSTALS_IN_PHI];
-
-p2rctIP1::ecalcrystal tmp ;
-
-for(p2rctIP1::loop i=0; i<p2rctIP1::CRYSTALS_IN_ETA23; i++){
-	for(p2rctIP1::loop j=0; j<p2rctIP1::CRYSTALS_IN_PHI; j++){
-        tmp = crystals[i][j] ;
-        crystals1D[j] = tmp ;
-	}
-	getseedEta(crystals1D, EtaSlices[i]) ;
-}
-
-getseedMax(EtaSlices, Seed) ;
-
-}
-
-
-void getslice(p2rctIP1::ecalcrystal crystals[p2rctIP1::CRYSTALS_IN_PHI+4], const p2rctIP1::ecalcrystal& Seed, ap_uint<12> &value) {
-
-ap_uint<12> tmpValue = 0 ;
-
-p2rctIP1::ecalcrystalmask mask[p2rctIP1::CRYSTALS_IN_PHI+4] ;
-
-for(p2rctIP1::loop j=0; j<p2rctIP1::CRYSTALS_IN_PHI; j++){
-    mask[j].energy = 0 ;
-}
-
-for(p2rctIP1::loop j=0; j<p2rctIP1::CRYSTALS_IN_PHI; j++){
-	if(j == Seed.phi){
-		mask[j+0].energy = 1;
-        mask[j+1].energy = 1;
-        mask[j+2].energy = 1;
-        mask[j+3].energy = 1;
-        mask[j+4].energy = 1;
-    }
-else {}
-}
-
-for(p2rctIP1::loop j=0; j<p2rctIP1::CRYSTALS_IN_PHI+4; j++){
-    ap_uint<10> energytmp = crystals[j].energy ;
-    ap_uint<10> energy = energytmp *  mask[j].energy ;
-    ap_uint<12> tmp = tmpValue + energy ;
-    tmpValue = tmp  ;
-}
-value = tmpValue ;
-}
-
-void zerrocrystals(p2rctIP1::ecalcrystal ecalcrystals[p2rctIP1::CRYSTALS_IN_ETA23][p2rctIP1::CRYSTALS_IN_PHI], p2rctIP1::ecalcrystal Seed, ap_uint<2> brems) {
-
-p2rctIP1::ecalcrystalmask mask[p2rctIP1::CRYSTALS_IN_ETA23][p2rctIP1::CRYSTALS_IN_PHI] ;
-p2rctIP1::ecalcrystalmask maskN[p2rctIP1::CRYSTALS_IN_ETA23][p2rctIP1::CRYSTALS_IN_PHI] ;
-p2rctIP1::ecalcrystalmask maskP[p2rctIP1::CRYSTALS_IN_ETA23][p2rctIP1::CRYSTALS_IN_PHI] ;
-p2rctIP1::ecalcrystalmask maskI[p2rctIP1::CRYSTALS_IN_ETA23][p2rctIP1::CRYSTALS_IN_PHI] ;
-
-ap_uint<5> eta = Seed.eta ;
-
-for(p2rctIP1::loop i=0; i<p2rctIP1::CRYSTALS_IN_ETA23; i++){
-	if(i+1 >= eta && i <= eta+1){
-    for(p2rctIP1::loop j=0; j<p2rctIP1::CRYSTALS_IN_PHI; j++){
-    	if(j+7 >= Seed.phi && j+3 <= Seed.phi ) maskN[i][j].energy=1 ;
-        }
-	}
-}
-
-for(p2rctIP1::loop i=0; i<p2rctIP1::CRYSTALS_IN_ETA23; i++){
-	if(i+1 >= eta && i <= eta+1){
-	for(p2rctIP1::loop j=0; j<p2rctIP1::CRYSTALS_IN_PHI; j++){
-		if(j+2 >= Seed.phi && j <= Seed.phi+2 ) mask[i][j].energy =1 ;
-		}
-	}
-}
-
-for(p2rctIP1::loop i=0; i<p2rctIP1::CRYSTALS_IN_ETA23; i++){
-	if(i+1 >= eta && i <= eta+1){
-        for(p2rctIP1::loop j=0; j<p2rctIP1::CRYSTALS_IN_PHI; j++){
-        if(j >= Seed.phi+3 && j <= Seed.phi+7 ) maskP[i][j].energy=1 ;
-        }
-	}
-}
-
-for(p2rctIP1::loop i=0; i<p2rctIP1::CRYSTALS_IN_ETA23; i++){
-	for(p2rctIP1::loop j=0; j<p2rctIP1::CRYSTALS_IN_PHI; j++){
-        maskI[i][j].energy = ((ap_uint<1>)1 - mask[i][j].energy) ;
-    }
-}
-
-if(brems == 1){
-for(p2rctIP1::loop i=0; i<p2rctIP1::CRYSTALS_IN_ETA23; i++){
-	for(p2rctIP1::loop j=0; j<p2rctIP1::CRYSTALS_IN_PHI; j++){
-		ap_uint<1> mask0 = maskI[i][j].energy * ((ap_uint<1>)1 - maskN[i][j].energy) ;
-        maskI[i][j].energy = mask0 ;
-       	}
-	}
-}
-
-if(brems == 2){
-for(p2rctIP1::loop i=0; i<p2rctIP1::CRYSTALS_IN_ETA23; i++){
-	for(p2rctIP1::loop j=0; j<p2rctIP1::CRYSTALS_IN_PHI; j++){
-		ap_uint<1> mask0 = maskI[i][j].energy * ((ap_uint<1>)1 - maskP[i][j].energy) ;
-		maskI[i][j].energy = mask0 ;
-	}
-}
-}
-
-for(p2rctIP1::loop i=0; i<p2rctIP1::CRYSTALS_IN_ETA23; i++){
-	for(p2rctIP1::loop j=0; j<p2rctIP1::CRYSTALS_IN_PHI; j++){
-		ap_uint<10> tmp = ecalcrystals[i][j].energy ;
-		ap_uint<10> energy = tmp * maskI[i][j].energy  ;
-        ecalcrystals[i][j].energy = energy ;
-	}
-}
-
-}
-
-void getcluster(p2rctIP1::ecalcrystal ecalcrystals[p2rctIP1::CRYSTALS_IN_ETA23][p2rctIP1::CRYSTALS_IN_PHI], p2rctIP1::ecalcrystal Seed, p2rctIP1::ecalcluster &output) {
-
-ap_uint<2> brems = 0 ;
-ap_uint<12> NegValue=0, CntrValue=0, PosValue=0 ;
-ap_uint<12> s5x5=0, s2x5=0, s2x5n=0, s2x5p=0 ;
-ap_uint<12> CntrSlice[5] ;
-ap_uint<12> NegSlice[5] ;
-ap_uint<12> PosSlice[5] ;
-
-p2rctIP1::ecalcrystal extendedcrystals[p2rctIP1::CRYSTALS_IN_ETA23+4][p2rctIP1::CRYSTALS_IN_PHI+4] ;
-
-for(p2rctIP1::loop i=0; i<p2rctIP1::CRYSTALS_IN_ETA23; i++){
-    for(p2rctIP1::loop j=0; j<p2rctIP1::CRYSTALS_IN_PHI; j++){
-        extendedcrystals[i+2][j+2].energy = ecalcrystals[i][j].energy ;
-	}
-}
-
-for(p2rctIP1::loop i=0; i<p2rctIP1::CRYSTALS_IN_ETA23; i++){
-	if(i == Seed.eta){
-		for(p2rctIP1::loop k=0; k<5; k++){
-		   p2rctIP1::ecalcrystal extendedcrystals1D[p2rctIP1::CRYSTALS_IN_PHI+4] ;
-		   	   for(p2rctIP1::loop j=0; j<p2rctIP1::CRYSTALS_IN_PHI+4; j++){
-		   		   extendedcrystals1D[j].energy = extendedcrystals[i+k][j].energy ;
-		   	   }
-	       getslice(extendedcrystals1D, Seed, CntrSlice[k]) ;
-         }
-	}
-	else { }
-}
-
-
-for(p2rctIP1::loop i=0; i<p2rctIP1::CRYSTALS_IN_ETA23; i++){
-	if(i == Seed.eta){
-		for(p2rctIP1::loop k=0; k<3; k++){
-		   p2rctIP1::ecalcrystal extendedcrystals1D[p2rctIP1::CRYSTALS_IN_PHI+4] ;
-		   for(p2rctIP1::loop j=0; j<p2rctIP1::CRYSTALS_IN_PHI-1; j++){
-        		extendedcrystals1D[j+5].energy = extendedcrystals[i+k+1][j].energy ;
-			}
-	        getslice(extendedcrystals1D, Seed, NegSlice[k+1]) ;
-		}
-	}
-	else { }
-}
-
-for(p2rctIP1::loop i=0; i<p2rctIP1::CRYSTALS_IN_ETA23; i++){
-	if(i == Seed.eta){
-		for(p2rctIP1::loop k=0; k<3; k++){
-		p2rctIP1::ecalcrystal extendedcrystals1D[p2rctIP1::CRYSTALS_IN_PHI+4] ;
-			for(p2rctIP1::loop j=0; j<p2rctIP1::CRYSTALS_IN_PHI-1; j++){
-        		extendedcrystals1D[j].energy = extendedcrystals[i+k+1][j+5].energy ;
-			}
-	    getslice(extendedcrystals1D, Seed, PosSlice[k+1]) ;
-        }
-	}
-		else { }
-}
-
-CntrValue = CntrSlice[1] + CntrSlice[2] + CntrSlice[3] ;
-NegValue = NegSlice[1] + NegSlice[2] + NegSlice[3] ;
-PosValue = PosSlice[1] + PosSlice[2] + PosSlice[3] ;
-s5x5 = CntrSlice[0] + CntrSlice[1] + CntrSlice[2] + CntrSlice[3] + CntrSlice[4] ;
-s2x5n = CntrSlice[1] + CntrSlice[2] ;
-s2x5p = CntrSlice[2] + CntrSlice[3] ;
-
-ap_uint<12> clusterEnergyDiv8 = CntrValue >> 3;
-ap_uint<12> Total = CntrValue ;
-
-if(NegValue > clusterEnergyDiv8 && NegValue > PosValue) {
-	Total = CntrValue + NegValue;
-    brems = 1;
-}
-else if(PosValue > clusterEnergyDiv8){
-	Total = CntrValue + PosValue;
-    brems  = 2;
-}
-else { brems = 0;}
-
-s2x5 = (s2x5n > s2x5p) ? s2x5n:s2x5p ;
-
-output.seedEnergy = Seed.energy ;
-output.energy = Total ;
-output.eta = Seed.eta ;
-output.phi = Seed.phi ;
-output.timing = Seed.timing ;
-output.spike = Seed.spike ;
-output.brems = brems ;
-output.et2x5 = s2x5 ;
-output.et5x5 = s5x5 ;
-
-}
-
-void createClusters1(p2rctIP1::ecalcrystal crystals[p2rctIP1::CRYSTALS_IN_ETA23][p2rctIP1::CRYSTALS_IN_PHI], p2rctIP1::ecalcluster ecalclusters[p2rctIP1::N_CLUSTERS]) {
-
-p2rctIP1::ecalcrystal Seed ;
-
-for(p2rctIP1::loop k=0; k<p2rctIP1::N_CLUSTERS; k++){
-	getseedposition(crystals, Seed) ;
-	getcluster(crystals,Seed,ecalclusters[k]) ;
-	zerrocrystals(crystals, Seed, ecalclusters[k].brems) ;
-}
-
-}
-
-void createTowers(p2rctIP1::ecalcrystal crystals[p2rctIP1::CRYSTALS_IN_ETA][p2rctIP1::CRYSTALS_IN_PHI],p2rctIP1::ecaltower ecaltowers[p2rctIP1::TOWERS_IN_ETA*p2rctIP1::TOWERS_IN_PHI]) {
-
-for(p2rctIP1::loop i=0; i<p2rctIP1::CRYSTALS_IN_ETA; i++){
-	for(p2rctIP1::loop j=0; j<p2rctIP1::CRYSTALS_IN_PHI; j++){
-	   ap_uint<12> energy = ecaltowers[i/5*6+j/5].energy + crystals[i][j].energy  ;
-		ecaltowers[i/5*6+j/5].energy = energy  ;
-		ecaltowers[i/5*6+j/5].timing = 0 ;
-		ecaltowers[i/5*6+j/5].spike = 0 ;
-	}
-}
-}
-
-void p2rctIP1::algo_top(ap_uint<576> link_in[p2rctIP1::N_INPUT_LINKS], ap_uint<576> link_out[p2rctIP1::N_OUTPUT_LINKS]){
-
-p2rctIP1::ecalcluster ecalclusters[p2rctIP1::N_CLUSTERS] ;
-p2rctIP1::ecalcluster ecalclustersH1[p2rctIP1::N_CLUSTERS] ;
-p2rctIP1::ecalcluster ecalclustersH2[p2rctIP1::N_CLUSTERS] ;
-p2rctIP1::ecalcluster ecalclustersH3[p2rctIP1::N_CLUSTERS] ;
-p2rctIP1::ecalcrystal ecalcrystals[p2rctIP1::CRYSTALS_IN_ETA][p2rctIP1::CRYSTALS_IN_PHI];
-p2rctIP1::ecalcrystal ecalcrystalsH1[p2rctIP1::CRYSTALS_IN_ETA23][p2rctIP1::CRYSTALS_IN_PHI];
-p2rctIP1::ecalcrystal ecalcrystalsH2[p2rctIP1::CRYSTALS_IN_ETA23][p2rctIP1::CRYSTALS_IN_PHI];
-p2rctIP1::ecalcrystal ecalcrystalsH3[p2rctIP1::CRYSTALS_IN_ETA23][p2rctIP1::CRYSTALS_IN_PHI];
-
-p2rctIP1::ecaltower ecaltowers[p2rctIP1::TOWERS_IN_ETA*p2rctIP1::TOWERS_IN_PHI];
-
-//creating 25x30 crystals matrix
-
-processInputLinks(link_in, ecalcrystals) ;
-          
-// 25 crystals in eta are divided into 3 regions
-// to create 3 regions, 11 eta each, with 2 eta overlap
-//      9+2    -      2+7+2       -     2+9
-//  0...8 9.10 - 7.8 9...15 16.17 - 14.15 16...24 
-  
-for(p2rctIP1::loop i=0; i<p2rctIP1::CRYSTALS_IN_ETA23; i++){
-	for(p2rctIP1::loop j=0; j<p2rctIP1::CRYSTALS_IN_PHI; j++){
-		ecalcrystalsH1[i][j] = ecalcrystals[i][j];
-		ecalcrystalsH1[i][j].eta = i;
-		ecalcrystalsH1[i][j].phi = j;
-	}
-}
-
-for(p2rctIP1::loop i=0; i<p2rctIP1::CRYSTALS_IN_ETA23; i++){
-	for(p2rctIP1::loop j=0; j<p2rctIP1::CRYSTALS_IN_PHI; j++){
-		ecalcrystalsH2[i][j] = ecalcrystals[p2rctIP1::CRYSTALS_IN_ETA23+i-4][j];
-		ecalcrystalsH2[i][j].eta = i;
-		ecalcrystalsH2[i][j].phi = j;
-	}
-}
-
-for(p2rctIP1::loop i=0; i<p2rctIP1::CRYSTALS_IN_ETA23; i++){
-	for(p2rctIP1::loop j=0; j<p2rctIP1::CRYSTALS_IN_PHI; j++){
-		ecalcrystalsH3[i][j] = ecalcrystals[p2rctIP1::CRYSTALS_IN_ETA23+i+3][j];
-		ecalcrystalsH3[i][j].eta = i;
-		ecalcrystalsH3[i][j].phi = j;
-	}
-}
-
-// each region is treated in the same way and later we combine them back in one
-//
-createClusters1(ecalcrystalsH1, ecalclustersH1);
-createClusters1(ecalcrystalsH2, ecalclustersH2);
-createClusters1(ecalcrystalsH3, ecalclustersH3);
-
-for(p2rctIP1::loop i=0; i<p2rctIP1::N_CLUSTERS; i++){
-	ap_uint<5> eta = ecalclustersH2[i].eta + 7;
-	ecalclustersH2[i].eta = eta ;
-}
-
-for(p2rctIP1::loop i=0; i<p2rctIP1::N_CLUSTERS; i++){
-	ap_uint<5> eta = ecalclustersH3[i].eta + 14;
-	ecalclustersH3[i].eta = eta ;
-}
-
-//  0...8 9.10 - 7.8 9...15 16.17 - 14.15 16...24 
-//  clean double counted clusters 
-//
-for(p2rctIP1::loop i=0; i<p2rctIP1::N_CLUSTERS; i++){
-	for(p2rctIP1::loop k=0; k<p2rctIP1::N_CLUSTERS; k++){
-		if(ecalclustersH1[i].eta == ecalclustersH2[k].eta && ecalclustersH1[i].phi == ecalclustersH2[k].phi){
-		if(ecalclustersH1[i].eta >= 9) { ecalclustersH1[i].energy = 0 ; }
-		else {ecalclustersH2[k].energy = 0 ;}
-		}
-	}
-}
-
-for(p2rctIP1::loop i=0; i<p2rctIP1::N_CLUSTERS; i++){
-	for(p2rctIP1::loop k=0; k<p2rctIP1::N_CLUSTERS; k++){
-		if(ecalclustersH3[i].eta == ecalclustersH2[k].eta && ecalclustersH3[i].phi == ecalclustersH2[k].phi){
-			if(ecalclustersH3[i].eta <= 15) { ecalclustersH3[i].energy = 0 ; }
-		else {ecalclustersH2[k].energy = 0 ;}
-		}
-	}
-}
-
-// unique regions are combined 
-//
-for(p2rctIP1::loop i=0; i<p2rctIP1::CRYSTALS_IN_ETA23-2; i++){
-	for(p2rctIP1::loop j=0; j<p2rctIP1::CRYSTALS_IN_PHI; j++){
-		ecalcrystals[i][j] = ecalcrystalsH1[i][j] ;
-	}
-}
-
-for(p2rctIP1::loop i=0; i<p2rctIP1::CRYSTALS_IN_ETA23-4; i++){
-	for(p2rctIP1::loop j=0; j<p2rctIP1::CRYSTALS_IN_PHI; j++){
-		ecalcrystals[p2rctIP1::CRYSTALS_IN_ETA23-2+i][j] = ecalcrystalsH2[i+2][j] ;
-	}
-}
-
-for(p2rctIP1::loop i=0; i<p2rctIP1::CRYSTALS_IN_ETA23-2; i++){
-	for(p2rctIP1::loop j=0; j<p2rctIP1::CRYSTALS_IN_PHI; j++){
-		ecalcrystals[p2rctIP1::CRYSTALS_IN_ETA23+5+i][j] = ecalcrystalsH3[i+2][j] ;
-	}
-}
-
-createTowers(ecalcrystals, ecaltowers) ;
-
-/*---------------------------------link 0------------------------------------*/
-        
-link_out[0] = 0;
-link_out[1] = 0;
-
-processOutputLinks(ecalclustersH1, ecalclustersH2, ecalclustersH3, ecaltowers, link_out);
-
-}
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -523,10 +90,14 @@ private:
   void produce(edm::Event&, const edm::EventSetup&) override;
 
   edm::EDGetTokenT<EcalEBTrigPrimDigiCollection> ecalTPEBToken_;
+  edm::EDGetTokenT<edm::SortedCollection<HcalTriggerPrimitiveDigi>> hcalTPToken_;
   edm::ESGetToken<CaloTPGTranscoder, CaloTPGRecord> decoderTag_;
 
   edm::ESGetToken<CaloGeometry, CaloGeometryRecord> caloGeometryTag_;
   const CaloSubdetectorGeometry* ebGeometry;
+  const CaloSubdetectorGeometry* hbGeometry;
+  edm::ESGetToken<HcalTopology, HcalRecNumberingRecord> hbTopologyTag_;
+  const HcalTopology* hcTopology_;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -535,8 +106,10 @@ private:
 
 Phase2L1CaloL1RCTEmulator::Phase2L1CaloL1RCTEmulator(const edm::ParameterSet& iConfig)
     : ecalTPEBToken_(consumes<EcalEBTrigPrimDigiCollection>(iConfig.getParameter<edm::InputTag>("ecalTPEB"))),
+      hcalTPToken_(consumes<edm::SortedCollection<HcalTriggerPrimitiveDigi>>(iConfig.getParameter<edm::InputTag>("hcalTP"))),
       decoderTag_(esConsumes<CaloTPGTranscoder, CaloTPGRecord>(edm::ESInputTag("", ""))),
-      caloGeometryTag_(esConsumes<CaloGeometry, CaloGeometryRecord>(edm::ESInputTag("", ""))) {
+      caloGeometryTag_(esConsumes<CaloGeometry, CaloGeometryRecord>(edm::ESInputTag("", ""))),
+      hbTopologyTag_(esConsumes<HcalTopology, HcalRecNumberingRecord>(edm::ESInputTag("", ""))) {
   produces<l1tp2::rctIP1OutputLinkCollection>("LinkOut");
 }
 
@@ -544,13 +117,20 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
   using namespace edm;
 
   // Output collections
-  std::unique_ptr<l1tp2::rctIP1OutputLinkCollection> link_out(make_unique<l1tp2::rctIP1OutputLinkCollection>());
+  // std::unique_ptr<l1tp2::rctIP1OutputLinkCollection> link_out(make_unique<l1tp2::rctIP1OutputLinkCollection>());
+
+  std::cout << "Starting the RCT Emulator..." << std::endl;
 
   // Detector geometry
   const auto& caloGeometry = iSetup.getData(caloGeometryTag_);
   ebGeometry = caloGeometry.getSubdetectorGeometry(DetId::Ecal, EcalBarrel);
+  hbGeometry = caloGeometry.getSubdetectorGeometry(DetId::Hcal, HcalBarrel);
 
-  // const auto& decoder = iSetup.getData(decoderTag_);
+  const auto& hbTopology = iSetup.getData(hbTopologyTag_);
+  hcTopology_ = &hbTopology;
+  HcalTrigTowerGeometry theTrigTowerGeometry(hcTopology_);
+
+  const auto& decoder = iSetup.getData(decoderTag_);
 
   //***************************************************//
   // Declare RCT output collections
@@ -573,7 +153,7 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
     {
       // Et is 10 bit, by keeping the ADC saturation Et at 120 GeV it means that you have to multiply by 0.125 (input LSB)
       float et = hit.encodedEt() * 0.125;
-      if (et < p2eg::cut_500_MeV) {
+      if (et < 0.5) {
         continue;  // Reject hits with < 500 MeV ET
       }
 
@@ -615,10 +195,73 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
     }
   }
 
-  // Iterate through cells of crystalEnergies and fill a vector of p2rctIO::RCTcard objects
+  //***************************************************//
+  // Get the HCAL hits
+  //***************************************************//
+  edm::Handle<edm::SortedCollection<HcalTriggerPrimitiveDigi>> hbhecoll;
+  iEvent.getByToken(hcalTPToken_, hbhecoll);
 
-  std::vector<p2rctIO::RCTcard> cardsECAL(p2rctIO::N_CARDS);
+  // Initialize array of energies to all 0s
+  float HCALtowerEnergies[p2rctIO::N_CARDS][p2rctIO::TOWERS_IN_REGION_ETA*p2rctIO::REGIONS_IN_CARD_ETA][p2rctIO::TOWERS_IN_REGION_PHI*p2rctIO::REGIONS_IN_CARD_PHI] = {{{ 0 }}};
 
+  for (const auto& hit : *hbhecoll.product()) {
+    float et = decoder.hcaletValue(hit.id(), hit.t0());
+    // same thing as SOI_compressedEt() in HcalTriggerPrimitiveDigi.h///
+    if (et <= 0)
+      continue;
+
+    if (!(hcTopology_->validHT(hit.id()))) {
+      LogError("Phase2L1CaloL1RCTEmulator")
+          << " -- Hcal hit DetID not present in HCAL Geom: " << hit.id() << std::endl;
+      throw cms::Exception("Phase2L1CaloL1RCTEmulator");
+      continue;
+    }
+    const std::vector<HcalDetId>& hcId = theTrigTowerGeometry.detIds(hit.id());
+    if (hcId.empty()) {
+      LogError("Phase2L1CaloL1RCTEmulator") << "Cannot find any HCalDetId corresponding to " << hit.id() << std::endl;
+      throw cms::Exception("Phase2L1CaloL1RCTEmulator");
+      continue;
+    }
+    if (hcId[0].subdetId() > 1) {
+      continue;
+    }
+    GlobalVector hcal_tp_position = GlobalVector(0., 0., 0.);
+    for (const auto& hcId_i : hcId) {
+      if (hcId_i.subdetId() > 1) {
+        continue;
+      }
+      // get the first HCAL TP/ cell
+      auto cell = hbGeometry->getGeometry(hcId_i);
+      if (cell == nullptr) {
+        continue;
+      }
+      GlobalVector tmpVector = GlobalVector(cell->getPosition().x(), cell->getPosition().y(), cell->getPosition().z());
+      hcal_tp_position = tmpVector;
+
+      break;
+    }
+    p2rctIO::SimpleCaloHit hhit;
+    hhit.setPosition(hcal_tp_position);
+    hhit.setEt(et);
+
+    // Find the card that this hit is in
+    for(int cc = 0; cc < p2rctIO::N_CARDS; cc++) {
+      if (hhit.isInCard(cc)) {
+
+        // Get the tower iEta and iPhi, relative to the bottom left corner of the card
+        int local_iEta = hhit.HCALtowerLocaliEta(cc);
+        int local_iPhi = hhit.HCALtowerLocaliPhi(cc);
+
+        HCALtowerEnergies[cc][local_iEta][local_iPhi] = HCALtowerEnergies[cc][local_iEta][local_iPhi] + hhit.et();
+
+      }
+    }
+
+  }
+
+  // Iterate through cells of crystalEnergies and fill a vector of p2rctIO::RCTcardECAL objects
+
+  std::vector<p2rctIO::RCTcardECAL> cardsECAL(p2rctIO::N_CARDS);
   for(int cc=0; cc < p2rctIO::N_CARDS; cc++) {
     for(int iEtaCrystalCard=0; iEtaCrystalCard < p2rctIO::N_TOWERS_ETA*p2rctIO::CRYSTALS_IN_TOWER_ETA; iEtaCrystalCard++) {
       for(int iPhiCrystalCard=0; iPhiCrystalCard < p2rctIO::N_TOWERS_PHI*p2rctIO::CRYSTALS_IN_TOWER_PHI; iPhiCrystalCard++) {
@@ -631,15 +274,98 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
       }
     }
   }
+
+  // Iterate through towers of HCALtowerEnergies and fill a vector of p2rctIO::RCTcardHCAL objects
+
+  std::vector<p2rctIO::RCTcardHCAL> cardsHCAL(p2rctIO::N_CARDS);
+  for(int cc=0; cc < p2rctIO::N_CARDS; cc++) {
+    for(int iEtaTowerCard=0; iEtaTowerCard < p2rctIO::TOWERS_IN_REGION_ETA*p2rctIO::REGIONS_IN_CARD_ETA; iEtaTowerCard++) {
+      for(int iPhiTowerCard=0; iPhiTowerCard < p2rctIO::TOWERS_IN_REGION_PHI*p2rctIO::REGIONS_IN_CARD_PHI; iPhiTowerCard++) {
+        float thisTowerEnergy = HCALtowerEnergies[cc][iEtaTowerCard][iPhiTowerCard];
+        cardsHCAL[cc].addHit(thisTowerEnergy, 0, iEtaTowerCard, iPhiTowerCard);
+
+        if (thisTowerEnergy > 0.0) {
+          std::cout << "Tower energy: " << thisTowerEnergy << std::endl;
+          std::cout << "Link: " << (bitset<576>)cardsHCAL[cc].getLink(iEtaTowerCard/4, iPhiTowerCard/4).Data() << std::endl;
+        }
+      }
+    }
+  }
   
   // std::cout << "Card 0, link (0,0): " << (bitset<576>)cardsECAL[0].getLink(0, 0).Data() << std::endl;
   // std::cout << "Card 23, link (16,5): " << (bitset<576>)cardsECAL[23].getLink(16, 5).Data() << std::endl;
 
-  // Here, need to separate out the hits into the 5x6 and 2x6 areas
+  // Loop through cards
+  for(int cc=0; cc < p2rctIO::N_CARDS; cc++) {
+    //////////////////////////// IP1 ////////////////////////////
 
-  // std::vector<ap_uint<576>> link_out[p2rctIP1::N_OUTPUT_LINKS];
+    // Separate out the hits into the 5x6 and 2x6 areas
+    std::vector<ap_uint<576>> link_in_SLR3_vec = cardsECAL[cc].getAx6(5, 0);
+    std::vector<ap_uint<576>> link_in_SLR2_vec = cardsECAL[cc].getAx6(5, 5);
+    std::vector<ap_uint<576>> link_in_SLR1_vec = cardsECAL[cc].getAx6(5, 10);
+    std::vector<ap_uint<576>> link_in_SLR0_vec = cardsECAL[cc].getAx6(2, 15);
 
-  // Apply p2rctIP1::algo_top using link_out
+    ap_uint<576>* link_in_SLR3 = &link_in_SLR3_vec[0];
+    ap_uint<576>* link_in_SLR2 = &link_in_SLR2_vec[0];
+    ap_uint<576>* link_in_SLR1 = &link_in_SLR1_vec[0];
+    ap_uint<576>* link_in_SLR0 = &link_in_SLR0_vec[0];
+
+    // Initialize output links for IP1
+    ap_uint<576> link_outIP1_SLR3[p2rctIP1_5x6::N_OUTPUT_LINKS];
+    ap_uint<576> link_outIP1_SLR2[p2rctIP1_5x6::N_OUTPUT_LINKS];
+    ap_uint<576> link_outIP1_SLR1[p2rctIP1_5x6::N_OUTPUT_LINKS];
+    ap_uint<576> link_outIP1_SLR0[p2rctIP1_2x6::N_OUTPUT_LINKS];
+
+    // Apply IP1 algo_top
+    p2rctIP1_5x6::algo_top(link_in_SLR3, link_outIP1_SLR3);
+    p2rctIP1_5x6::algo_top(link_in_SLR2, link_outIP1_SLR2);
+    p2rctIP1_5x6::algo_top(link_in_SLR1, link_outIP1_SLR1);
+    p2rctIP1_2x6::algo_top(link_in_SLR0, link_outIP1_SLR0);
+
+    // Reorganize links to be input links for IP21
+    ap_uint<576> link_inIP21[p2rctIP1_5x6::N_OUTPUT_LINKS*3 + p2rctIP1_2x6::N_OUTPUT_LINKS];
+    for(int i=0; i<2; i++) {
+      link_inIP21[i*4] = link_outIP1_SLR3[i];
+      link_inIP21[i*4 + 1] = link_outIP1_SLR2[i];
+      link_inIP21[i*4 + 2] = link_outIP1_SLR1[i];
+      link_inIP21[i*4 + 3] = link_outIP1_SLR0[i];
+    }
+
+    // Initialize output links for IP21
+    ap_uint<576> link_outIP21[p2rctIP21::N_OUTPUT_LINKS];
+
+    // Apply IP21 algo_top (using ss vars from firmware IP21 test bench)
+    p2rctIP21::algo_top(link_inIP21, link_outIP21,126, 125, 125, 124, 123, 123, 122, 122, 121, 121, 121, 121, 121, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120);
+
+    // Initialize output links for IP22
+    ap_uint<576> link_outIP22[p2rctIP22::N_OUTPUT_LINKS];
+
+    // Apply IP22 algo_top (link_outIP21 = link_inIP22)
+    p2rctIP22::algo_top(link_outIP21, link_outIP22);
+
+    // Append HCAL links to link_outIP22 to form link_inIP3
+    ap_uint<576> link_inIP3[p2rctIP3::N_INPUT_LINKS];
+    // IP22 output links
+    for(int i=0; i<p2rctIP22::N_OUTPUT_LINKS; i++) {
+      link_inIP3[i] = link_outIP22[i];
+    }
+    // HCAL links
+    for(int iPhi=0; iPhi<p2rctIO::REGIONS_IN_CARD_PHI; iPhi++) {
+      for(int iEta=0; iEta<p2rctIO::REGIONS_IN_CARD_ETA; iEta++) {
+        int index = iPhi * p2rctIO::REGIONS_IN_CARD_ETA + iEta + p2rctIP22::N_OUTPUT_LINKS;
+        link_inIP3[index] = cardsHCAL[cc].getLink(iEta,iPhi).Data();
+      }
+    }
+
+    // Initialize output links for IP3
+    ap_uint<576> link_outIP3[p2rctIP3::N_OUTPUT_LINKS];
+
+    // Apply IP3 algo_top
+    p2rctIP3::algo_top(link_inIP3, link_outIP3);
+
+    std::cout << "IP3 output link 0: " << (bitset<576>)link_outIP3[0] << std::endl;
+
+  }
 
   // iEvent.put(std::move(link_out), "LinkOut");
 }

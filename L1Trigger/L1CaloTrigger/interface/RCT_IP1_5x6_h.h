@@ -1,8 +1,9 @@
 //------------------------------------
-// IP1 Logic for Phase2L1CaloL1RCTEmulator.cc
+// IP1 5x6 Logic for Phase2L1CaloL1RCTEmulator.cc
+// (based heavily on algo_top.h in RCT firmware repo)
 //------------------------------------
-#ifndef L1Trigger_L1CaloTrigger_RCT_IP1
-#define L1Trigger_L1CaloTrigger_RCT_IP1
+#ifndef L1Trigger_L1CaloTrigger_RCT_IP1_5x6_h
+#define L1Trigger_L1CaloTrigger_RCT_IP1_5x6_h
 
 #include <iostream>
 #include "ap_int.h"
@@ -10,7 +11,7 @@
 #include <utility>
 #include <stdint.h>
 
-namespace p2rctIP1 {
+namespace p2rctIP1_5x6 {
 
 static constexpr int N_INPUT_LINKS = 30;
 static constexpr int N_OUTPUT_LINKS = 2;
@@ -236,6 +237,6 @@ class ecaltower{
 
 void algo_top(ap_uint<576> link_in[N_INPUT_LINKS], ap_uint<576> link_out[N_OUTPUT_LINKS]);
 
-} // namespace p2rctIP1
+} // namespace p2rctIP1_5x6
 
 #endif

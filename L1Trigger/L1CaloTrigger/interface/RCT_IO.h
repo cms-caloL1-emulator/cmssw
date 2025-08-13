@@ -1,5 +1,7 @@
 //------------------------------------
-// IP1 Logic for Phase2L1CaloL1RCTEmulator.cc
+// IO Logic for Phase2L1CaloL1RCTEmulator.cc.
+// Interface between CMSSW-provided trigger primitives and the input links
+// that the firmware code takes as inputs.
 //------------------------------------
 #ifndef L1Trigger_L1CaloTrigger_RCT_IO
 #define L1Trigger_L1CaloTrigger_RCT_IO
@@ -18,6 +20,7 @@ static constexpr int N_BITS_CRYSTAL = 16;
 static constexpr int N_BITS_ENERGY = 10;
 static constexpr int N_BITS_TIMING = 5;
 static constexpr int N_BITS_SPIKE = 1;
+static constexpr int N_BITS_TOWER_HCAL = 16;
 static constexpr float LSB_ENERGY = 0.5;
 
 static constexpr int N_TOWERS_PHI = 6;
@@ -28,7 +31,13 @@ static constexpr int N_CARDS = 24;
 static constexpr int CRYSTALS_IN_TOWER_ETA = 5;
 static constexpr int CRYSTALS_IN_TOWER_PHI = 5;
 
+static constexpr int TOWERS_IN_REGION_ETA = 8;
+static constexpr int TOWERS_IN_REGION_PHI = 4;
+static constexpr int REGIONS_IN_CARD_ETA = 2;
+static constexpr int REGIONS_IN_CARD_PHI = 2;
+
 static constexpr float ECAL_ETA_RANGE = 1.4841;
+static constexpr float HCAL_ETA_RANGE = 1.3968;
 
 //////////////////////////////////////////////////////////////////////////
   // RCT: indexing helper functions
@@ -74,7 +83,7 @@ static constexpr float ECAL_ETA_RANGE = 1.4841;
     return phimin;
   }
 
-  // Given the RCT card number (0-N_CARDS), get the crystal iEta of the "bottom left" corner
+  // Given the RCT card number (0 through N_CARDS-1), get the global crystal iEta of the "bottom left" corner
   inline int getCard_refCrystal_iEta(int cc) {
     if ((cc % 2) == 1) {  // if cc is odd (positive eta)
       return (N_TOWERS_ETA * CRYSTALS_IN_TOWER_ETA);
@@ -83,14 +92,34 @@ static constexpr float ECAL_ETA_RANGE = 1.4841;
     }
   }
 
-  // Given the RCT card number (0-N_CARDS), get the global crystal iPhi of the "bottom left" corner (0- 71*5)
+  // Given the RCT card number (0 through N_CARDS-1), get the global crystal iPhi of the "bottom left" corner (0- 71*5)
   inline int getCard_refCrystal_iPhi(int cc) {
     if ((cc % 2) == 1) {
       // if cc is odd: positive eta
       return int(cc / 2) * N_TOWERS_PHI * CRYSTALS_IN_TOWER_PHI;
     } else {
       // if cc is even, the bottom left corner is further in phi, hence the +1 and -1
-      return (((int(cc / 2)+1) * N_TOWERS_PHI) * CRYSTALS_IN_TOWER_PHI) - 1;
+      return ((int(cc / 2)+1) * N_TOWERS_PHI * CRYSTALS_IN_TOWER_PHI) - 1;
+    }
+  }
+
+  // Given the RCT card number (0 through N_CARDS-1), get the global HCAL tower iEta of the "bottom left" corner
+  inline int getCard_refHCALTower_iEta(int cc) {
+    if ((cc % 2) == 1) {  // if cc is odd (positive eta)
+      return (TOWERS_IN_REGION_ETA * REGIONS_IN_CARD_ETA);
+    } else {  // if cc is even (negative eta) the bottom left corner is further in eta
+      return (TOWERS_IN_REGION_ETA * REGIONS_IN_CARD_ETA - 1);
+    }
+  }
+
+  // Given the RCT card number (0 through N_CARDS-1), get the global HCAL tower iPhi of the "bottom left" corner
+  inline int getCard_refHCALTower_iPhi(int cc) {
+    if ((cc % 2) == 1) {
+      // if cc is odd: positive eta
+      return int(cc / 2) * TOWERS_IN_REGION_PHI * REGIONS_IN_CARD_ETA;
+    } else {
+      // if cc is even, the bottom left corner is further in phi, hence the +1 and -1
+      return ((int(cc / 2)+1) * TOWERS_IN_REGION_PHI * REGIONS_IN_CARD_PHI) - 1;
     }
   }
 
@@ -144,13 +173,62 @@ class linkECAL {
     }
 };
 
-class RCTcard {
+class linkHCAL {
+    private:
+    ap_uint<576> data;
+
+    public:
+    // constructor
+    linkHCAL() {
+        data = (ap_uint<576>)0;
+    }
+
+    inline ap_uint<576> Data(void) {return data;}
+
+    inline void setTower(float energy, int features, int iEta, int iPhi) {
+        // Clear the 16 bits for this tower
+        clearTower(iEta, iPhi);
+
+        // Build the 16 bits for this tower
+        ap_uint<16> towerData;
+        towerData = 
+        ((ap_uint<16>)(energy/LSB_ENERGY) & 0x3FF) |
+        (((ap_uint<16>)(features)<<N_BITS_ENERGY) & 0x3F) ;
+
+        // Put this tower's 16 bits into the 576 bit data
+        int startId = iEta*TOWERS_IN_REGION_PHI+iPhi;
+        int start = startId * N_BITS_TOWER_HCAL;
+        ap_uint<576> shiftedTowerData = (ap_uint<576>)towerData<<start;
+
+        this->data = this->data | shiftedTowerData;
+    }
+
+    inline void clearTower(int iEta, int iPhi) {
+        // Find first bit corresponding to crystal at iEta, iPhi
+        int startId = iEta*TOWERS_IN_REGION_PHI+iPhi;
+        int start = startId * N_BITS_TOWER_HCAL;
+
+        ap_uint<576> spaceHolder = (ap_uint<576>)(0xFFFF)<<start; //16 1s, shifted to start at start
+
+        this->data = this->data & ~spaceHolder; //Turn the 16 bits for this crystal to 0
+    }
+
+    inline void clearAllTowers(void) {
+        for(int i=0; i<TOWERS_IN_REGION_ETA; i++) {
+            for(int j=0; j<TOWERS_IN_REGION_PHI; j++) {
+                clearTower(i,j);
+            }
+        }
+    }
+};
+
+class RCTcardECAL {
     private:
     linkECAL links[N_TOWERS_ETA][N_TOWERS_PHI];
 
     public:
     //constructor
-    RCTcard() {
+    RCTcardECAL() {
         for(int iEta=0; iEta<N_TOWERS_ETA; iEta++) {
             for(int iPhi=0; iPhi<N_TOWERS_PHI; iPhi++) {
                 links[iEta][iPhi] = linkECAL();
@@ -174,9 +252,54 @@ class RCTcard {
         // }
     }
 
-    inline linkECAL getLink(int iEtaCrystalCard, int iPhiCrystalCard) {
-      // Return the link at iEtaCrystalCard, iPhiCrystalCard. int accessible via .Data() method
-      return links[iEtaCrystalCard][iPhiCrystalCard];
+    inline linkECAL getLink(int iEtaTowerCard, int iPhiTowerCard) {
+      // Return the link at iEtaTowerCard, iPhiTowerCard. int accessible via .Data() method
+      return links[iEtaTowerCard][iPhiTowerCard];
+    }
+
+    inline std::vector<ap_uint<576>> getAx6(int A, int iEtaOffset) {
+      // Return A*6 words as the input links for an Ax6 region, with an offset of rows in iEta
+      std::vector<ap_uint<576>> out;
+
+      for(int iEta=0; iEta<A; iEta++) {
+        for(int iPhi=0; iPhi<6; iPhi++) {
+          out.push_back(getLink(iEta+iEtaOffset, iPhi).Data());
+        }
+      }
+      return out;
+    }
+};
+
+class RCTcardHCAL {
+    private:
+    linkHCAL links[REGIONS_IN_CARD_ETA][REGIONS_IN_CARD_PHI];
+
+    public:
+    //constructor
+    RCTcardHCAL() {
+        for(int iEta=0; iEta<REGIONS_IN_CARD_ETA; iEta++) {
+            for(int iPhi=0; iPhi<REGIONS_IN_CARD_PHI; iPhi++) {
+                links[iEta][iPhi] = linkHCAL();
+            }
+        }
+    }
+
+    inline void addHit(float energy, int features, int iEtaTowerCard, int iPhiTowerCard) {
+        // Find which link(=region) this hit is in
+        int iEtaRegionCard = iEtaTowerCard/TOWERS_IN_REGION_ETA;
+        int iPhiRegionCard = iPhiTowerCard/TOWERS_IN_REGION_PHI;
+
+        // Find which tower within that region it is
+        int iEtaTowerRegion = iEtaTowerCard%TOWERS_IN_REGION_ETA;
+        int iPhiTowerRegion = iPhiTowerCard%TOWERS_IN_REGION_PHI;
+
+        // Update that tower within that link
+        links[iEtaRegionCard][iPhiRegionCard].setTower(energy, features, iEtaTowerRegion, iPhiTowerRegion);
+    }
+
+    inline linkHCAL getLink(int iEtaRegionCard, int iPhiRegionCard) {
+      // Return the link at iEtaRegionCard, iPhiRegionCard. int accessible via .Data() method
+      return links[iEtaRegionCard][iPhiRegionCard];
     }
 };
 
@@ -198,18 +321,18 @@ class SimpleCaloHit {
 
     /* 
        * Get crystal's iEta from real eta. (identical to getCrystal_etaID in L1EGammaCrystalsEmulatorProducer.cc)
-       * This "global" iEta ranges from 0 to (33*5) since there are 34 towers in eta in the full detector, 
+       * This "global" iEta ranges from 0 to (34*5)-1 since there are 34 towers in eta in the full detector, 
        * each with five crystals in eta.
        */
     int crystaliEta(void) const {
-      float size_cell = 2 * ECAL_ETA_RANGE / (CRYSTALS_IN_TOWER_ETA * 2 * N_TOWERS_ETA);
+      float size_cell = ECAL_ETA_RANGE / (CRYSTALS_IN_TOWER_ETA * N_TOWERS_ETA);
       int iEta = int((position().eta() + ECAL_ETA_RANGE) / size_cell);
       return iEta;
     }
 
     /* 
        * Get crystal's iPhi from real phi. (identical to getCrystal_phiID in L1EGammaCrystalsEmulatorProducer.cc)
-       * This "global" iPhi ranges from 0 to (71*5) since there are 72 towers in phi in the full detector, each with five crystals in eta.
+       * This "global" iPhi ranges from 0 to (71*5) since there are 72 towers in phi in the full detector, each with five crystals in phi.
        */
     int crystaliPhi(void) const {
       float phi = position().phi();
@@ -218,10 +341,32 @@ class SimpleCaloHit {
       return iPhi;
     }
 
+    /* 
+       * Get HCAL tower's iEta from real eta.
+       * This "global" iEta ranges from 0 to 31 since there are 32 towers in eta in the full detector
+       */
+    int HCALtoweriEta(void) const {
+      float size_cell = HCAL_ETA_RANGE / (TOWERS_IN_REGION_ETA * REGIONS_IN_CARD_ETA);
+      int iEta = int((position().eta() + HCAL_ETA_RANGE) / size_cell);
+      return iEta;
+    }
+
+    /* 
+       * Get tower's iPhi from real phi.
+       * This "global" iPhi ranges from 0 to 8*12-1 since there are 12 cards spanning phi, each with 8 tower in phi.
+       */
+    int HCALtoweriPhi(void) const {
+      float phi = position().phi();
+      float size_cell = 2 * M_PI / (TOWERS_IN_REGION_PHI * REGIONS_IN_CARD_PHI * N_CARDS / 2);
+      int iPhi = int((phi + M_PI) / size_cell);
+      return iPhi;
+    }
+
     /*
        * Check if it falls within the boundary of a card.
        */
     bool isInCard(int cc) const {
+      // Written using ECAL crystal coordinates, but works equally for HCAL
       return (crystaliPhi() <= getCard_iPhiMax(cc) && crystaliPhi() >= getCard_iPhiMin(cc) &&
               crystaliEta() <= getCard_iEtaMax(cc) && crystaliEta() >= getCard_iEtaMin(cc));
     };
@@ -238,6 +383,16 @@ class SimpleCaloHit {
       * there are N_TOWERS_PHI towers in phi, each with CRYSTALS_IN_TOWER_PHI crystals in phi.
       */
     int crystalLocaliPhi(int cc) const { return abs(getCard_refCrystal_iPhi(cc) - crystaliPhi()); }
+
+    /*
+      * For a tower with real eta, and falling in card cc, get its local iEta 
+      * relative to the bottom left corner of the card (possible local iEta ranges from 0 to
+      * TOWERS_IN_REGION_ETA * REGIONS_IN_CARD_ETA.
+      */
+    int HCALtowerLocaliEta(int cc) const { return abs(getCard_refHCALTower_iEta(cc) - HCALtoweriEta()); }
+
+    // Same as above, but for iPhi
+    int HCALtowerLocaliPhi(int cc) const { return abs(getCard_refHCALTower_iPhi(cc) - HCALtoweriPhi()); }
 };
 
 } // namespace p2rctIO
