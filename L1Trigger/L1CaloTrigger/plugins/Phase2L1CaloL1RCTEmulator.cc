@@ -73,7 +73,7 @@
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP22_cpp.h"
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP3_h.h"
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP3_cpp.h"
-#include "DataFormats/L1TCalorimeterPhase2/interface/RCT_IP1.h"
+#include "DataFormats/L1TCalorimeterPhase2/interface/RCT_output.h"
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -110,14 +110,20 @@ Phase2L1CaloL1RCTEmulator::Phase2L1CaloL1RCTEmulator(const edm::ParameterSet& iC
       decoderTag_(esConsumes<CaloTPGTranscoder, CaloTPGRecord>(edm::ESInputTag("", ""))),
       caloGeometryTag_(esConsumes<CaloGeometry, CaloGeometryRecord>(edm::ESInputTag("", ""))),
       hbTopologyTag_(esConsumes<HcalTopology, HcalRecNumberingRecord>(edm::ESInputTag("", ""))) {
-  produces<l1tp2::rctIP1OutputLinkCollection>("LinkOut");
+  produces<l1tp2::rctOutputLinkCollection>("LinkOut0");
+  produces<l1tp2::rctOutputLinkCollection>("LinkOut1");
+  produces<l1tp2::rctOutputLinkCollection>("LinkOut2");
+  produces<l1tp2::rctOutputLinkCollection>("LinkOut3");
 }
 
 void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
   using namespace edm;
 
   // Output collections
-  // std::unique_ptr<l1tp2::rctIP1OutputLinkCollection> link_out(make_unique<l1tp2::rctIP1OutputLinkCollection>());
+  std::unique_ptr<l1tp2::rctOutputLinkCollection> link_out0(make_unique<l1tp2::rctOutputLinkCollection>());
+  std::unique_ptr<l1tp2::rctOutputLinkCollection> link_out1(make_unique<l1tp2::rctOutputLinkCollection>());
+  std::unique_ptr<l1tp2::rctOutputLinkCollection> link_out2(make_unique<l1tp2::rctOutputLinkCollection>());
+  std::unique_ptr<l1tp2::rctOutputLinkCollection> link_out3(make_unique<l1tp2::rctOutputLinkCollection>());
 
   std::cout << "Starting the RCT Emulator..." << std::endl;
 
@@ -166,6 +172,10 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
       ehit.setPosition(GlobalVector(cell->getPosition().x(), cell->getPosition().y(), cell->getPosition().z()));
       ehit.setEt(et);
 
+      if(et > 10) {
+        std::cout << "ECAL hit at with energy " << et << " at (eta , phi): " << ehit.position().eta() << " , " << ehit.position().phi() << std::endl;
+      }
+
       // std::cout << "ehit energy: " << ehit.et() << std::endl;
       // std::cout << "ehit eta: " << ehit.position().eta() << std::endl;
       // std::cout << "ehit phi: " << ehit.position().phi() << std::endl;
@@ -194,6 +204,8 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
       // break;
     }
   }
+
+  std::cout << "------------------------------------" << std::endl;
 
   //***************************************************//
   // Get the HCAL hits
@@ -266,6 +278,9 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
     for(int iEtaCrystalCard=0; iEtaCrystalCard < p2rctIO::N_TOWERS_ETA*p2rctIO::CRYSTALS_IN_TOWER_ETA; iEtaCrystalCard++) {
       for(int iPhiCrystalCard=0; iPhiCrystalCard < p2rctIO::N_TOWERS_PHI*p2rctIO::CRYSTALS_IN_TOWER_PHI; iPhiCrystalCard++) {
         float thisCrystalEnergy = crystalEnergies[cc][iEtaCrystalCard][iPhiCrystalCard];
+        if(thisCrystalEnergy > 15){
+          std::cout << "Adding energy " << thisCrystalEnergy << " in card " << cc << " at iEta " << iEtaCrystalCard << " at iPhi " << iPhiCrystalCard << std::endl;
+        }
         cardsECAL[cc].addHit(thisCrystalEnergy, 0.0, 0, iEtaCrystalCard, iPhiCrystalCard);
 
         // if (thisCrystalEnergy > 0.0) {
@@ -284,10 +299,12 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
         float thisTowerEnergy = HCALtowerEnergies[cc][iEtaTowerCard][iPhiTowerCard];
         cardsHCAL[cc].addHit(thisTowerEnergy, 0, iEtaTowerCard, iPhiTowerCard);
 
-        if (thisTowerEnergy > 0.0) {
-          std::cout << "Tower energy: " << thisTowerEnergy << std::endl;
-          std::cout << "Link: " << (bitset<576>)cardsHCAL[cc].getLink(iEtaTowerCard/4, iPhiTowerCard/4).Data() << std::endl;
-        }
+        //if (thisTowerEnergy > 0.0) {
+        //  if (cc == 0) {
+        //  std::cout << "Tower energy: " << thisTowerEnergy << std::endl;
+        //  std::cout << "Link: " << (bitset<576>)cardsHCAL[cc].getLink(iEtaTowerCard/4, iPhiTowerCard/4).Data() << std::endl;
+        //  }
+        //}
       }
     }
   }
@@ -300,10 +317,10 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
     //////////////////////////// IP1 ////////////////////////////
 
     // Separate out the hits into the 5x6 and 2x6 areas
-    std::vector<ap_uint<576>> link_in_SLR3_vec = cardsECAL[cc].getAx6(5, 0);
-    std::vector<ap_uint<576>> link_in_SLR2_vec = cardsECAL[cc].getAx6(5, 5);
-    std::vector<ap_uint<576>> link_in_SLR1_vec = cardsECAL[cc].getAx6(5, 10);
-    std::vector<ap_uint<576>> link_in_SLR0_vec = cardsECAL[cc].getAx6(2, 15);
+    std::vector<ap_uint<576>> link_in_SLR3_vec = cardsECAL[cc].getAx6(5, 12);
+    std::vector<ap_uint<576>> link_in_SLR2_vec = cardsECAL[cc].getAx6(5, 7);
+    std::vector<ap_uint<576>> link_in_SLR1_vec = cardsECAL[cc].getAx6(5, 2);
+    std::vector<ap_uint<576>> link_in_SLR0_vec = cardsECAL[cc].getAx6(2, 0);
 
     ap_uint<576>* link_in_SLR3 = &link_in_SLR3_vec[0];
     ap_uint<576>* link_in_SLR2 = &link_in_SLR2_vec[0];
@@ -363,11 +380,34 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
     // Apply IP3 algo_top
     p2rctIP3::algo_top(link_inIP3, link_outIP3);
 
-    std::cout << "IP3 output link 0: " << (bitset<576>)link_outIP3[0] << std::endl;
+    // Print outputs for comparison purposes
+    std::cout << "------------------------------" << std::endl;
+    std::cout << "New emulator RCT outputs of card: " << cc << std::endl;
+
+    // Print output clusters
+    std::cout << "Clusters:" << std::endl;
+    p2rctIO::printIP3OutputClusters(link_outIP3[0]);
+
+    // Print towers
+    std::cout << "Tower iPhi 0 and 1:" << std::endl;
+    p2rctIO::printIP3OutputTowers(link_outIP3[1]);
+    std::cout << "Tower iPhi 2 and 3:" << std::endl;
+    p2rctIO::printIP3OutputTowers(link_outIP3[2]);
+    std::cout << "Tower iPhi 4 and 5:" << std::endl;
+    p2rctIO::printIP3OutputTowers(link_outIP3[3]);
+
+    // Move outputs into output vectors
+    link_out0->push_back(link_outIP3[0]);
+    link_out1->push_back(link_outIP3[1]);
+    link_out2->push_back(link_outIP3[2]);
+    link_out3->push_back(link_outIP3[3]);
 
   }
 
-  // iEvent.put(std::move(link_out), "LinkOut");
+  iEvent.put(std::move(link_out0), "LinkOut0");
+  iEvent.put(std::move(link_out1), "LinkOut1");
+  iEvent.put(std::move(link_out2), "LinkOut2");
+  iEvent.put(std::move(link_out3), "LinkOut3");
 }
 
 //////////////////////////////////////////////////////////////////////////

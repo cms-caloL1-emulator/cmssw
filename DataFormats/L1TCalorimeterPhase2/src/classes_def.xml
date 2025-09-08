@@ -60,11 +60,11 @@
   <class name="l1tp2::Phase2L1CaloJetCollection" />
   <class name="edm::Wrapper<l1tp2::Phase2L1CaloJetCollection>" />
 
-  <class name="l1tp2::rctIP1OutputLink" ClassVersion="3">
+  <class name="l1tp2::rctOutputLink" ClassVersion="3">
        <version ClassVersion="3" checksum="535998159"/>
   </class>
-  <class name="std::vector<l1tp2::rctIP1OutputLink>" />
-  <class name="l1tp2::rctIP1OutputLinkCollection" />
-  <class name="edm::Wrapper<l1tp2::rctIP1OutputLinkCollection>" />
+  <class name="std::vector<l1tp2::rctOutputLink>" />
+  <class name="l1tp2::rctOutputLinkCollection" />
+  <class name="edm::Wrapper<l1tp2::rctOutputLinkCollection>" />
 </lcgdict>
 
