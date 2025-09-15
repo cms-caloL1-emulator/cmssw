@@ -395,6 +395,84 @@ class SimpleCaloHit {
     int HCALtowerLocaliPhi(int cc) const { return abs(getCard_refHCALTower_iPhi(cc) - HCALtoweriPhi()); }
 };
 
+void printIP3OutputClusters(ap_uint<576> Data) {
+  ap_uint<10> seed_pt;
+  ap_uint<12> pt;
+  ap_uint<7> eta;
+  ap_uint<5> phi;
+  ap_uint<10> et5x5;
+  ap_uint<7> wps;
+  ap_uint<5> timing;
+  ap_uint<1> spike;
+  ap_uint<1> satur;
+  ap_uint<2> brems;
+  ap_uint<4> spare;
+
+  for(int i=0; i<9; i++){
+    int start = i*64;
+    std::cout << "Cluster " << i << std::endl;
+
+    seed_pt = Data.range(start+9,start);
+    std::cout << "seed_pt: " << seed_pt*0.5 << std::endl;
+    pt = Data.range(start+21,start+10);
+    std::cout << "pt: " << pt*0.5 << std::endl;
+    eta = Data.range(start+28,start+22);
+    std::cout << "eta: " << eta << std::endl;
+    phi = Data.range(start+33,start+29);
+    std::cout << "phi: " << phi << std::endl;
+    et5x5 = Data.range(start+43,start+34);
+    std::cout << "et5x5: " << et5x5*2.0 << std::endl;
+    wps = Data.range(start+50,start+44);
+    std::cout << "wps: " << wps << std::endl;
+    timing = Data.range(start+55,start+51);
+    std::cout << "timing: " << timing << std::endl;
+    spike = Data.range(start+56,start+56);
+    std::cout << "spike: " << spike << std::endl;
+    satur = Data.range(start+57,start+57);
+    std::cout << "satur: " << satur << std::endl;
+    brems = Data.range(start+59,start+58);
+    std::cout << "brems: " << brems << std::endl;
+    spare = Data.range(start+63,start+60);
+    std::cout << "spare: " << spare << std::endl;
+  }
+}
+
+void printIP3OutputTowers(ap_uint<576> Data) {
+  ap_uint<10> et;
+  ap_uint<4> hoe;
+  ap_uint<2> fb;
+
+  std::cout << "Lower iPhi in this link:" << std::endl;
+  for(int i=0; i<17; i++) {
+    int start = i*16;
+    if(Data.range(start+9,start) > 0){
+    std::cout << "Tower iEta " << i << std::endl;
+
+    et = Data.range(start+9,start);
+    std::cout << "et: " << et*0.5 << std::endl;
+    hoe = Data.range(start+13,start+10);
+    std::cout << "hoe: " << hoe << std::endl;
+    fb = Data.range(start+15,start+14);
+    std::cout << "fb: " << fb << std::endl;
+    }
+  }
+
+  std::cout << "Higher iPhi in this link:" << std::endl;
+  for(int i=0; i<17; i++) {
+    int start = i*16 + 272;
+    if(Data.range(start+9,start) > 0){
+    std::cout << "Tower iEta " << i << std::endl;
+
+    et = Data.range(start+9,start);
+    std::cout << "et: " << et*0.5 << std::endl;
+    hoe = Data.range(start+13,start+10);
+    std::cout << "hoe: " << hoe << std::endl;
+    fb = Data.range(start+15,start+14);
+    std::cout << "fb: " << fb << std::endl;
+    }
+  }
+}
+
 } // namespace p2rctIO
 
 #endif
