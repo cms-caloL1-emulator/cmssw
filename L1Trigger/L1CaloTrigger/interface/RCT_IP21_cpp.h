@@ -66,7 +66,6 @@
 // RCT IP21 header files and data formats
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP21_h.h"
 #include "L1Trigger/L1CaloTrigger/interface/bitonicSort32_h.h"
-#include "DataFormats/L1TCalorimeterPhase2/interface/RCT_IP1.h"
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -84,13 +83,14 @@ inline void processOutLinks(ecalcluster ECALClustersSorted[N_CLUSTERS],
 
 //threshhold calibration for top 9 clusters
    for (loop i = 0; i < N_CLUSTERS_OUT; i++) {
-      ap_uint < 7 > slr = ECALClustersSorted[i + 23].spare;
-      ap_uint < 7 > etatmp = 3 - ECALClustersSorted[i + 23].eta;
+
+	   ap_uint < 7 > slr = ECALClustersSorted[i + 23].spare;
+      //ap_uint < 7 > etatmp = 3 - ECALClustersSorted[i + 23].eta;
+      ap_uint < 7 > etatmp = ECALClustersSorted[i + 23].eta;
       ap_uint < 7 >  rctEta = etatmp + ((ap_uint < 7 > ) slr << 4) + ((ap_uint < 7 > ) slr << 3) + slr;
 
-
-
       RCTECALClusters[i].fillrctecalcluster2(ECALClustersSorted[i + 23], rctEta, SS_fun);
+
    }
 
 

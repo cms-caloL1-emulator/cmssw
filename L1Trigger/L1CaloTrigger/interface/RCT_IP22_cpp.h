@@ -63,10 +63,9 @@
 // RCT CMSSW - firmware interface
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IO.h"
 
-// RCT IP21 header files and data formats
+// RCT IP22 header files
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP22_h.h"
 #include "L1Trigger/L1CaloTrigger/interface/bitonicSort32_h.h"
-#include "DataFormats/L1TCalorimeterPhase2/interface/RCT_IP1.h"
 
 //////////////////////////////////////////////////////////////////////////
 

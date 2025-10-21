@@ -165,6 +165,7 @@ class ecalcluster{
       (((ap_uint<64>) satur)       << 58) |
       (((ap_uint<64>) brems)       << 59) |
       (((ap_uint<64>) spare)       << 61);
+    
     return data ;
     }
 

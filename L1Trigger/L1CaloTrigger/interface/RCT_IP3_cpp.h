@@ -63,10 +63,9 @@
 // RCT CMSSW - firmware interface
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IO.h"
 
-// RCT IP21 header files and data formats
+// RCT IP3 header files
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP3_h.h"
 #include "L1Trigger/L1CaloTrigger/interface/bitonicSort32_h.h"
-#include "DataFormats/L1TCalorimeterPhase2/interface/RCT_IP1.h"
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -148,7 +147,6 @@ for(loop i=0; i<N_CLUSTERS; i++){
     ap_uint<10> start   = i*64;
     ap_uint<10> end = start + 63;
     RCTECALClusters[i].fillrctecalcluster(link_in[0].range(end, start));
-
   }
 
 

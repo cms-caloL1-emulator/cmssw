@@ -152,6 +152,7 @@ void Phase2L1CaloEGammaEmulator::produce(edm::Event& iEvent, const edm::EventSet
           2);  // also save the uint Et, this is to convert between 0.125 (in MC production) and 0.5 (in firmware based code)
       ehit.setPt();
       ecalhits.push_back(ehit);
+
     }
   }
 
@@ -449,6 +450,7 @@ void Phase2L1CaloEGammaEmulator::produce(edm::Event& iEvent, const edm::EventSet
     //-----------------------------------------------------------//
     // Produce output RCT collections for event display and analyzer
     //-----------------------------------------------------------//
+
     for (auto& c : cluster_list_merged[cc]) {
       reco::Candidate::PolarLorentzVector p4calibrated(c.getPt(), c.realEta(cc), c.realPhi(cc), 0.);
 
@@ -477,8 +479,13 @@ void Phase2L1CaloEGammaEmulator::produce(edm::Event& iEvent, const edm::EventSet
       params["trkMatchWP_showerShape"] = c.getIsLooseTkss();
       cluster.setExperimentalParams(params);
 
+      if(c.getPt() > 0){
+
       L1EGXtalClusters->push_back(cluster);
+      }
     }
+
+
     // Output tower collections
     for (int ii = 0; ii < p2eg::n_towers_cardEta; ++ii) {    // 17 towers per card in eta
       for (int jj = 0; jj < p2eg::n_towers_cardPhi; ++jj) {  // 4 towers per card in phi

@@ -63,9 +63,8 @@
 // RCT CMSSW - firmware interface
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IO.h"
 
-// RCT IP1 header files and data formats
+// RCT IP1 header files
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP1_5x6_h.h"
-#include "DataFormats/L1TCalorimeterPhase2/interface/RCT_IP1.h"
 
 //////////////////////////////////////////////////////////////////////////
 

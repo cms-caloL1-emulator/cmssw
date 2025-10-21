@@ -336,8 +336,11 @@ class SimpleCaloHit {
        */
     int crystaliPhi(void) const {
       float phi = position().phi();
+      if(phi < 0){
+        phi = 2 * M_PI + phi; // wrap negative values to be > pi
+      }
       float size_cell = 2 * M_PI / (CRYSTALS_IN_TOWER_PHI * N_TOWERS_PHI * N_CARDS / 2);
-      int iPhi = int((phi + M_PI) / size_cell);
+      int iPhi = int(phi / size_cell);
       return iPhi;
     }
 
