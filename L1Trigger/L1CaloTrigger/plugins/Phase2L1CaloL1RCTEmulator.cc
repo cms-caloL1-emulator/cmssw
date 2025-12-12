@@ -75,7 +75,7 @@
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP3_cpp.h"
 #include "DataFormats/L1TCalorimeterPhase2/interface/RCT_output.h"
 
-//////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 // Declare the Phase2L1CaloL1RCTEmulator class and its methods
 
@@ -100,7 +100,7 @@ private:
   const HcalTopology* hcTopology_;
 };
 
-///////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////
 
 // Phase2L1CaloL1RCTEmulator initializer, destructor, and produce methods
 
@@ -180,8 +180,6 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
       for(int cc = 0; cc < p2rctIO::N_CARDS; cc++) {
         if (ehit.isInCard(cc)) {
 
-          // std::cout << "Hit is in card: " << cc << std::endl;
-
           // Get the crystal iEta and iPhi, relative to the bottom left corner of the card
           int local_iEta = ehit.crystalLocaliEta(cc);
           int local_iPhi = ehit.crystalLocaliPhi(cc);
@@ -208,7 +206,8 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
   iEvent.getByToken(hcalTPToken_, hbhecoll);
 
   // Initialize array of energies to all 0s
-  float HCALtowerEnergies[p2rctIO::N_CARDS][p2rctIO::TOWERS_IN_REGION_ETA*p2rctIO::REGIONS_IN_CARD_ETA][p2rctIO::TOWERS_IN_REGION_PHI*p2rctIO::REGIONS_IN_CARD_PHI] = {{{ 0 }}};
+  //float HCALtowerEnergies[p2rctIO::N_CARDS][p2rctIO::TOWERS_IN_REGION_ETA*p2rctIO::REGIONS_IN_CARD_ETA][p2rctIO::TOWERS_IN_REGION_PHI*p2rctIO::REGIONS_IN_CARD_PHI] = {{{ 0 }}};
+  float HCALtowerEnergies[p2rctIO::N_REGIONS_ETA][p2rctIO::N_REGIONS_PHI][p2rctIO::TOWERS_IN_REGION_ETA][p2rctIO::TOWERS_IN_REGION_PHI] = {{{{ 0 }}}};
 
   for (const auto& hit : *hbhecoll.product()) {
     float et = decoder.hcaletValue(hit.id(), hit.t0());
@@ -250,18 +249,12 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
     hhit.setPosition(hcal_tp_position);
     hhit.setEt(et);
 
-    // Find the card that this hit is in
-    for(int cc = 0; cc < p2rctIO::N_CARDS; cc++) {
-      if (hhit.isInCard(cc)) {
+    int BCP_iEta = hhit.BCPcardiEta();
+    int BCP_iPhi = hhit.BCPcardiPhi();
+    int iEtaInBCP = hhit.iEtaInBCPcard();
+    int iPhiInBCP = hhit.iPhiInBCPcard();
 
-        // Get the tower iEta and iPhi, relative to the bottom left corner of the card
-        int local_iEta = hhit.HCALtowerLocaliEta(cc);
-        int local_iPhi = hhit.HCALtowerLocaliPhi(cc);
-
-        HCALtowerEnergies[cc][local_iEta][local_iPhi] = HCALtowerEnergies[cc][local_iEta][local_iPhi] + hhit.et();
-
-      }
-    }
+    HCALtowerEnergies[BCP_iEta][BCP_iPhi][iEtaInBCP][iPhiInBCP] = HCALtowerEnergies[BCP_iEta][BCP_iPhi][iEtaInBCP][iPhiInBCP] + hhit.et();
 
   }
 
@@ -281,21 +274,16 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
     }
   }
 
-  // Iterate through towers of HCALtowerEnergies and fill a vector of p2rctIO::RCTcardHCAL objects
+  // Iterate through towers of HCALtowerEnergies and fill an array of HCAL links via a BCPcardsHCAL object
 
-  std::vector<p2rctIO::RCTcardHCAL> cardsHCAL(p2rctIO::N_CARDS);
-  for(int cc=0; cc < p2rctIO::N_CARDS; cc++) {
-    for(int iEtaTowerCard=0; iEtaTowerCard < p2rctIO::TOWERS_IN_REGION_ETA*p2rctIO::REGIONS_IN_CARD_ETA; iEtaTowerCard++) {
-      for(int iPhiTowerCard=0; iPhiTowerCard < p2rctIO::TOWERS_IN_REGION_PHI*p2rctIO::REGIONS_IN_CARD_PHI; iPhiTowerCard++) {
-        float thisTowerEnergy = HCALtowerEnergies[cc][iEtaTowerCard][iPhiTowerCard];
-        cardsHCAL[cc].addHit(thisTowerEnergy, 0, iEtaTowerCard, iPhiTowerCard);
-
-        //if (thisTowerEnergy > 0.0) {
-        //  if (cc == 0) {
-        //  std::cout << "Tower energy: " << thisTowerEnergy << std::endl;
-        //  std::cout << "Link: " << (bitset<576>)cardsHCAL[cc].getLink(iEtaTowerCard/4, iPhiTowerCard/4).Data() << std::endl;
-        //  }
-        //}
+  p2rctIO::BCPcardsHCAL cardsHCAL;
+  for(int BCPiEta=0; BCPiEta < p2rctIO::N_REGIONS_ETA; BCPiEta++) {
+    for(int BCPiPhi=0; BCPiPhi < p2rctIO::N_REGIONS_PHI; BCPiPhi++) {
+      for(int iEtaInBCP=0; iEtaInBCP < p2rctIO::TOWERS_IN_REGION_ETA; iEtaInBCP++) {
+        for(int iPhiInBCP=0; iPhiInBCP < p2rctIO::TOWERS_IN_REGION_PHI; iPhiInBCP++) {
+          float thisTowerEnergy = HCALtowerEnergies[BCPiEta][BCPiPhi][iEtaInBCP][iPhiInBCP];
+          cardsHCAL.addHit(thisTowerEnergy, 0, BCPiEta, BCPiPhi, iEtaInBCP, iPhiInBCP);
+        }
       }
     }
   }
@@ -308,10 +296,10 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
     //////////////////////////// IP1 ////////////////////////////
 
     // Separate out the hits into the 5x6 and 2x6 areas
-    std::vector<ap_uint<576>> link_in_SLR3_vec = cardsECAL[cc].getAx6(5, 12);
-    std::vector<ap_uint<576>> link_in_SLR2_vec = cardsECAL[cc].getAx6(5, 7);
-    std::vector<ap_uint<576>> link_in_SLR1_vec = cardsECAL[cc].getAx6(5, 2);
-    std::vector<ap_uint<576>> link_in_SLR0_vec = cardsECAL[cc].getAx6(2, 0);
+    std::vector<ap_uint<576>> link_in_SLR3_vec = cardsECAL[cc].getAx6(5, 0);
+    std::vector<ap_uint<576>> link_in_SLR2_vec = cardsECAL[cc].getAx6(5, 5);
+    std::vector<ap_uint<576>> link_in_SLR1_vec = cardsECAL[cc].getAx6(5, 10);
+    std::vector<ap_uint<576>> link_in_SLR0_vec = cardsECAL[cc].getAx6(2, 15);
 
     ap_uint<576>* link_in_SLR3 = &link_in_SLR3_vec[0];
     ap_uint<576>* link_in_SLR2 = &link_in_SLR2_vec[0];
@@ -358,18 +346,56 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
       link_inIP3[i] = link_outIP22[i];
     }
     // HCAL links
-    for(int iPhi=0; iPhi<p2rctIO::REGIONS_IN_CARD_PHI; iPhi++) {
-      for(int iEta=0; iEta<p2rctIO::REGIONS_IN_CARD_ETA; iEta++) {
-        int index = iPhi * p2rctIO::REGIONS_IN_CARD_ETA + iEta + p2rctIP22::N_OUTPUT_LINKS;
-        link_inIP3[index] = cardsHCAL[cc].getLink(iEta,iPhi).Data();
+    bool secondhalfstarts = (((cc + 3) % 4) > 1); //True for cards 0,3,4,7,etc.
+    int BCPiPhiLow = (3*(cc / 2)) / 2;
+    int BCPiPhiHigh = BCPiPhiLow + 1;
+    if((cc % 2) == 1) {
+      // Positive eta
+      int BCPiEtaLow = 2;
+      int BCPiEtaHigh = 3;
+
+      if (!secondhalfstarts) {
+        link_inIP3[5] = cardsHCAL.getLink(BCPiEtaLow,BCPiPhiLow).Data();
+        link_inIP3[6] = cardsHCAL.getLink(BCPiEtaHigh,BCPiPhiLow).Data();
+        link_inIP3[7] = cardsHCAL.getLink(BCPiEtaLow,BCPiPhiHigh).Data();
+        link_inIP3[8] = cardsHCAL.getLink(BCPiEtaHigh,BCPiPhiHigh).Data();
+      }
+      else {
+        link_inIP3[5] = cardsHCAL.getLink(BCPiEtaLow,BCPiPhiHigh).Data();
+        link_inIP3[6] = cardsHCAL.getLink(BCPiEtaHigh,BCPiPhiHigh).Data();
+        link_inIP3[7] = cardsHCAL.getLink(BCPiEtaLow,BCPiPhiLow).Data();
+        link_inIP3[8] = cardsHCAL.getLink(BCPiEtaHigh,BCPiPhiLow).Data();
+      }
+    }
+    else {
+      // Negative eta
+      int BCPiEtaLow = 0;
+      int BCPiEtaHigh = 1;
+
+      if (!secondhalfstarts) {
+        link_inIP3[5] = cardsHCAL.getLink(BCPiEtaHigh,BCPiPhiHigh).Data();
+        link_inIP3[6] = cardsHCAL.getLink(BCPiEtaLow,BCPiPhiHigh).Data();
+        link_inIP3[7] = cardsHCAL.getLink(BCPiEtaHigh,BCPiPhiLow).Data();
+        link_inIP3[8] = cardsHCAL.getLink(BCPiEtaLow,BCPiPhiLow).Data();
+      }
+      else {
+        link_inIP3[5] = cardsHCAL.getLink(BCPiEtaHigh,BCPiPhiLow).Data();
+        link_inIP3[6] = cardsHCAL.getLink(BCPiEtaLow,BCPiPhiLow).Data();
+        link_inIP3[7] = cardsHCAL.getLink(BCPiEtaHigh,BCPiPhiHigh).Data();
+        link_inIP3[8] = cardsHCAL.getLink(BCPiEtaLow,BCPiPhiHigh).Data();
       }
     }
 
     // Initialize output links for IP3
     ap_uint<576> link_outIP3[p2rctIP3::N_OUTPUT_LINKS];
 
-    // Apply IP3 algo_top
-    p2rctIP3::algo_top(link_inIP3, link_outIP3);
+    // Apply IP3 algo_top, or algo_top_HCALsecondhalfstarts
+    if (!secondhalfstarts) {
+      p2rctIP3::algo_top(link_inIP3, link_outIP3);
+    }
+    else {
+      p2rctIP3::algo_top_HCALsecondhalfstarts(link_inIP3, link_outIP3);
+    }
 
     // // Print outputs for comparison purposes
     // std::cout << "------------------------------" << std::endl;

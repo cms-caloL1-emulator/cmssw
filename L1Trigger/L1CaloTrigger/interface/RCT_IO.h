@@ -35,6 +35,8 @@ static constexpr int TOWERS_IN_REGION_ETA = 8;
 static constexpr int TOWERS_IN_REGION_PHI = 4;
 static constexpr int REGIONS_IN_CARD_ETA = 2;
 static constexpr int REGIONS_IN_CARD_PHI = 2;
+static constexpr int N_REGIONS_PHI = 18;
+static constexpr int N_REGIONS_ETA = 4;
 
 static constexpr float ECAL_ETA_RANGE = 1.4841;
 static constexpr float HCAL_ETA_RANGE = 1.3968;
@@ -106,7 +108,7 @@ static constexpr float HCAL_ETA_RANGE = 1.3968;
   // Given the RCT card number (0 through N_CARDS-1), get the global HCAL tower iEta of the "bottom left" corner
   inline int getCard_refHCALTower_iEta(int cc) {
     if ((cc % 2) == 1) {  // if cc is odd (positive eta)
-      return (TOWERS_IN_REGION_ETA * REGIONS_IN_CARD_ETA);
+      return (TOWERS_IN_REGION_ETA * REGIONS_IN_CARD_ETA); // towers in BCP region * BCP regions in RCT card = #towers in RCT card
     } else {  // if cc is even (negative eta) the bottom left corner is further in eta
       return (TOWERS_IN_REGION_ETA * REGIONS_IN_CARD_ETA - 1);
     }
@@ -116,10 +118,10 @@ static constexpr float HCAL_ETA_RANGE = 1.3968;
   inline int getCard_refHCALTower_iPhi(int cc) {
     if ((cc % 2) == 1) {
       // if cc is odd: positive eta
-      return int(cc / 2) * TOWERS_IN_REGION_PHI * REGIONS_IN_CARD_ETA;
+      return int(cc / 2) * N_TOWERS_PHI;
     } else {
       // if cc is even, the bottom left corner is further in phi, hence the +1 and -1
-      return ((int(cc / 2)+1) * TOWERS_IN_REGION_PHI * REGIONS_IN_CARD_PHI) - 1;
+      return ((int(cc / 2)+1) * N_TOWERS_PHI) - 1;
     }
   }
 
@@ -270,36 +272,28 @@ class RCTcardECAL {
     }
 };
 
-class RCTcardHCAL {
+class BCPcardsHCAL {
     private:
-    linkHCAL links[REGIONS_IN_CARD_ETA][REGIONS_IN_CARD_PHI];
+    linkHCAL links[N_REGIONS_ETA][N_REGIONS_PHI];
 
     public:
     //constructor
-    RCTcardHCAL() {
-        for(int iEta=0; iEta<REGIONS_IN_CARD_ETA; iEta++) {
-            for(int iPhi=0; iPhi<REGIONS_IN_CARD_PHI; iPhi++) {
+    BCPcardsHCAL() {
+        for(int iEta=0; iEta<N_REGIONS_ETA; iEta++) {
+            for(int iPhi=0; iPhi<N_REGIONS_PHI; iPhi++) {
                 links[iEta][iPhi] = linkHCAL();
             }
         }
     }
 
-    inline void addHit(float energy, int features, int iEtaTowerCard, int iPhiTowerCard) {
-        // Find which link(=region) this hit is in
-        int iEtaRegionCard = iEtaTowerCard/TOWERS_IN_REGION_ETA;
-        int iPhiRegionCard = iPhiTowerCard/TOWERS_IN_REGION_PHI;
-
-        // Find which tower within that region it is
-        int iEtaTowerRegion = iEtaTowerCard%TOWERS_IN_REGION_ETA;
-        int iPhiTowerRegion = iPhiTowerCard%TOWERS_IN_REGION_PHI;
-
+    inline void addHit(float energy, int features, int BCPiEta, int BCPiPhi, int iEtaTowerCard, int iPhiTowerCard) {
         // Update that tower within that link
-        links[iEtaRegionCard][iPhiRegionCard].setTower(energy, features, iEtaTowerRegion, iPhiTowerRegion);
+        links[BCPiEta][BCPiPhi].setTower(energy, features, iEtaTowerCard, iPhiTowerCard);
     }
 
-    inline linkHCAL getLink(int iEtaRegionCard, int iPhiRegionCard) {
-      // Return the link at iEtaRegionCard, iPhiRegionCard. int accessible via .Data() method
-      return links[iEtaRegionCard][iPhiRegionCard];
+    inline linkHCAL getLink(int BCPiEta, int BCPiPhi) {
+      // Return the link at BCPiEta, BCPiPhi. int accessible via .Data() method
+      return links[BCPiEta][BCPiPhi];
     }
 };
 
@@ -336,11 +330,8 @@ class SimpleCaloHit {
        */
     int crystaliPhi(void) const {
       float phi = position().phi();
-      if(phi < 0){
-        phi = 2 * M_PI + phi; // wrap negative values to be > pi
-      }
       float size_cell = 2 * M_PI / (CRYSTALS_IN_TOWER_PHI * N_TOWERS_PHI * N_CARDS / 2);
-      int iPhi = int(phi / size_cell);
+      int iPhi = int((phi + M_PI) / size_cell);
       return iPhi;
     }
 
@@ -356,11 +347,11 @@ class SimpleCaloHit {
 
     /* 
        * Get tower's iPhi from real phi.
-       * This "global" iPhi ranges from 0 to 8*12-1 since there are 12 cards spanning phi, each with 8 tower in phi.
+       * This "global" iPhi ranges from 0 to 6*12-1 since there are 12 cards spanning phi, each with 6 towers in phi.
        */
     int HCALtoweriPhi(void) const {
       float phi = position().phi();
-      float size_cell = 2 * M_PI / (TOWERS_IN_REGION_PHI * REGIONS_IN_CARD_PHI * N_CARDS / 2);
+      float size_cell = 2 * M_PI / (N_TOWERS_PHI * N_CARDS / 2);
       int iPhi = int((phi + M_PI) / size_cell);
       return iPhi;
     }
@@ -396,6 +387,49 @@ class SimpleCaloHit {
 
     // Same as above, but for iPhi
     int HCALtowerLocaliPhi(int cc) const { return abs(getCard_refHCALTower_iPhi(cc) - HCALtoweriPhi()); }
+
+    // Find the iEta for the HCAL BCP card this is in (0 through 3)
+    int BCPcardiEta(void) const {
+      int hit_iEta = HCALtoweriEta();
+      int out = hit_iEta / TOWERS_IN_REGION_ETA;
+      return out;
+    }
+
+    // Same as above, but for iPhi (0 through 17)
+    int BCPcardiPhi(void) const {
+      int hit_iPhi = HCALtoweriPhi();
+      int out = hit_iPhi / TOWERS_IN_REGION_PHI;
+      return out;
+    }
+
+    // Find the iEta of this hit within its HCAL BCP card (0 through 7)
+    int iEtaInBCPcard(void) const {
+      int hit_iEta = HCALtoweriEta();
+      int BCP_iEta = BCPcardiEta();
+      int out;
+      if (BCP_iEta >= N_REGIONS_ETA/2) {
+        out = hit_iEta - BCP_iEta*TOWERS_IN_REGION_ETA; //positive eta
+      }
+      else {
+        out = (BCP_iEta+1)*TOWERS_IN_REGION_ETA - 1 - hit_iEta;
+      }
+      return out;
+    }
+
+    // Same as above, but for iPhi (0 through 3)
+    int iPhiInBCPcard(void) const {
+      int hit_iPhi = HCALtoweriPhi();
+      int BCP_iPhi = BCPcardiPhi();
+      int BCP_iEta = BCPcardiEta();
+      int out;
+      if (BCP_iEta >= N_REGIONS_ETA/2) {
+        out = hit_iPhi - BCP_iPhi*TOWERS_IN_REGION_PHI; //positive eta
+      }
+      else {
+        out = (BCP_iPhi+1)*TOWERS_IN_REGION_PHI - 1 - hit_iPhi;
+      }
+      return out;
+    }
 };
 
 void printIP3OutputClusters(ap_uint<576> Data) {
