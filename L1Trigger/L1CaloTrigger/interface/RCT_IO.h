@@ -195,7 +195,7 @@ class linkHCAL {
         ap_uint<16> towerData;
         towerData = 
         ((ap_uint<16>)(energy/LSB_ENERGY) & 0x3FF) |
-        (((ap_uint<16>)(features)<<N_BITS_ENERGY) & 0x3F) ;
+        (((ap_uint<16>)(features) & 0x3F)<<N_BITS_ENERGY) ;
 
         // Put this tower's 16 bits into the 576 bit data
         int startId = iEta*TOWERS_IN_REGION_PHI+iPhi;
