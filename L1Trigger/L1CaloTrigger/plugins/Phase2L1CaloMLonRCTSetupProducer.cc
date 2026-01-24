@@ -307,10 +307,10 @@ void Phase2L1CaloMLonRCTSetupProducer::produce(edm::Event& iEvent, const edm::Ev
     p2rctIP1_2x6::algo_top(link_in_SLR0, link_outIP1_SLR0);
 
     // Move outputs into output vectors
-    link_outEGammaSLR3->push_back(link_outIP1_SLR3);
-    link_outEGammaSLR2->push_back(link_outIP1_SLR2);
-    link_outEGammaSLR1->push_back(link_outIP1_SLR1);
-    link_outEGammaSLR0->push_back(link_outIP1_SLR0);
+    link_outEGammaSLR3->push_back(link_outIP1_SLR3[0]);
+    link_outEGammaSLR2->push_back(link_outIP1_SLR2[0]);
+    link_outEGammaSLR1->push_back(link_outIP1_SLR1[0]);
+    link_outEGammaSLR0->push_back(link_outIP1_SLR0[0]);
 
     // HCAL links
     bool secondhalfstarts = (((cc + 3) % 4) > 1); //True for cards 0,3,4,7,etc.
