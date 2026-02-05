@@ -6,7 +6,7 @@ l1tPhase2MLonRCTSetupProducer = cms.EDProducer("Phase2L1CaloMLonRCTSetupProducer
 )
 
 from Configuration.ProcessModifiers.premix_stage2_cff import premix_stage2
-premix_stage2.toModify(l1tPhase2RCTEmulatorProducer,
+premix_stage2.toModify(l1tPhase2MLonRCTSetupProducer,
     ecalTPEB = cms.InputTag("DMEcalEBTriggerPrimitiveDigis"),
     hcalTP = "DMHcalTriggerPrimitiveDigis",
 )
