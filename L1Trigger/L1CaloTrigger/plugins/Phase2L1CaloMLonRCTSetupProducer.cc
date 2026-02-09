@@ -66,6 +66,7 @@
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP1_5x6_cpp.h"
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP1_2x6_h.h"
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP1_2x6_cpp.h"
+#include "L1Trigger/L1CaloTrigger/interface/RCT_IP3_h.h"
 #include "DataFormats/L1TCalorimeterPhase2/interface/RCT_output.h"
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -325,6 +326,9 @@ void Phase2L1CaloMLonRCTSetupProducer::produce(edm::Event& iEvent, const edm::Ev
     link_outECALUnclusteredSLR2->push_back(link_outIP1_SLR2[1]);
     link_outECALUnclusteredSLR1->push_back(link_outIP1_SLR1[1]);
     link_outECALUnclusteredSLR0->push_back(link_outIP1_SLR0[1]);
+
+    // Declare link_inIP3, which contains HCAL links
+    ap_uint<576> link_inIP3[p2rctIP3::N_INPUT_LINKS];
 
     // HCAL links
     bool secondhalfstarts = (((cc + 3) % 4) > 1); //True for cards 0,3,4,7,etc.
