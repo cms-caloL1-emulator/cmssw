@@ -108,6 +108,10 @@ Phase2L1CaloMLonRCTSetupProducer::Phase2L1CaloMLonRCTSetupProducer(const edm::Pa
   produces<l1tp2::rctOutputLinkCollection>("EGammaSLR2");
   produces<l1tp2::rctOutputLinkCollection>("EGammaSLR1");
   produces<l1tp2::rctOutputLinkCollection>("EGammaSLR0");
+  produces<l1tp2::rctOutputLinkCollection>("ECALUnclusteredSLR3");
+  produces<l1tp2::rctOutputLinkCollection>("ECALUnclusteredSLR2");
+  produces<l1tp2::rctOutputLinkCollection>("ECALUnclusteredSLR1");
+  produces<l1tp2::rctOutputLinkCollection>("ECALUnclusteredSLR0");
   produces<l1tp2::rctOutputLinkCollection>("HCAL8");
   produces<l1tp2::rctOutputLinkCollection>("HCAL7");
   produces<l1tp2::rctOutputLinkCollection>("HCAL6");
@@ -122,6 +126,10 @@ void Phase2L1CaloMLonRCTSetupProducer::produce(edm::Event& iEvent, const edm::Ev
   std::unique_ptr<l1tp2::rctOutputLinkCollection> link_outEGammaSLR2(make_unique<l1tp2::rctOutputLinkCollection>());
   std::unique_ptr<l1tp2::rctOutputLinkCollection> link_outEGammaSLR1(make_unique<l1tp2::rctOutputLinkCollection>());
   std::unique_ptr<l1tp2::rctOutputLinkCollection> link_outEGammaSLR0(make_unique<l1tp2::rctOutputLinkCollection>());
+  std::unique_ptr<l1tp2::rctOutputLinkCollection> link_outECALUnclusteredSLR3(make_unique<l1tp2::rctOutputLinkCollection>());
+  std::unique_ptr<l1tp2::rctOutputLinkCollection> link_outECALUnclusteredSLR2(make_unique<l1tp2::rctOutputLinkCollection>());
+  std::unique_ptr<l1tp2::rctOutputLinkCollection> link_outECALUnclusteredSLR1(make_unique<l1tp2::rctOutputLinkCollection>());
+  std::unique_ptr<l1tp2::rctOutputLinkCollection> link_outECALUnclusteredSLR0(make_unique<l1tp2::rctOutputLinkCollection>());
   std::unique_ptr<l1tp2::rctOutputLinkCollection> link_outHCAL8(make_unique<l1tp2::rctOutputLinkCollection>());
   std::unique_ptr<l1tp2::rctOutputLinkCollection> link_outHCAL7(make_unique<l1tp2::rctOutputLinkCollection>());
   std::unique_ptr<l1tp2::rctOutputLinkCollection> link_outHCAL6(make_unique<l1tp2::rctOutputLinkCollection>());
@@ -306,11 +314,17 @@ void Phase2L1CaloMLonRCTSetupProducer::produce(edm::Event& iEvent, const edm::Ev
     p2rctIP1_5x6::algo_top(link_in_SLR1, link_outIP1_SLR1);
     p2rctIP1_2x6::algo_top(link_in_SLR0, link_outIP1_SLR0);
 
-    // Move outputs into output vectors
+    // Move cluster outputs into output vectors
     link_outEGammaSLR3->push_back(link_outIP1_SLR3[0]);
     link_outEGammaSLR2->push_back(link_outIP1_SLR2[0]);
     link_outEGammaSLR1->push_back(link_outIP1_SLR1[0]);
     link_outEGammaSLR0->push_back(link_outIP1_SLR0[0]);
+
+    // Move towers of unclustered ECAL energy into output vectors
+    link_outECALUnclusteredSLR3->push_back(link_outIP1_SLR3[1]);
+    link_outECALUnclusteredSLR2->push_back(link_outIP1_SLR2[1]);
+    link_outECALUnclusteredSLR1->push_back(link_outIP1_SLR1[1]);
+    link_outECALUnclusteredSLR0->push_back(link_outIP1_SLR0[1]);
 
     // HCAL links
     bool secondhalfstarts = (((cc + 3) % 4) > 1); //True for cards 0,3,4,7,etc.
@@ -365,6 +379,10 @@ void Phase2L1CaloMLonRCTSetupProducer::produce(edm::Event& iEvent, const edm::Ev
   iEvent.put(std::move(link_outEGammaSLR2), "EGammaSLR2");
   iEvent.put(std::move(link_outEGammaSLR1), "EGammaSLR1");
   iEvent.put(std::move(link_outEGammaSLR0), "EGammaSLR0");
+  iEvent.put(std::move(link_outECALUnclusteredSLR3), "ECALUnclusteredSLR3");
+  iEvent.put(std::move(link_outECALUnclusteredSLR2), "ECALUnclusteredSLR2");
+  iEvent.put(std::move(link_outECALUnclusteredSLR1), "ECALUnclusteredSLR1");
+  iEvent.put(std::move(link_outECALUnclusteredSLR0), "ECALUnclusteredSLR0");
   iEvent.put(std::move(link_outHCAL8), "HCAL8");
   iEvent.put(std::move(link_outHCAL7), "HCAL7");
   iEvent.put(std::move(link_outHCAL6), "HCAL6");
