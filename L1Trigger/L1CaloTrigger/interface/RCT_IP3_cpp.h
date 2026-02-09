@@ -67,7 +67,7 @@
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP3_h.h"
 #include "L1Trigger/L1CaloTrigger/interface/bitonicSort32_h.h"
 
-//////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////
 
 // Define algo_top for RCT IP3
 
@@ -243,6 +243,29 @@ rcttower RCTTowersPHI[N_TOWERS_IN_PHI][N_TOWERS_IN_ETA];
 // order of HCAL tower
 
 bool HCALsecondhalfstarts = 0 ;
+
+processInputLinks(link_in, RCTECALClusters, RCTTowersPHI, HCALsecondhalfstarts) ;
+/*---------------------------------link 0------------------------------------*/
+        
+link_out[0] = 0;
+link_out[1] = 0;
+link_out[2] = 0;
+link_out[3] = 0;
+
+processOutLinks(RCTECALClusters, RCTTowersPHI, link_out);
+
+}
+
+inline void algo_top_HCALsecondhalfstarts(ap_uint<576> link_in[N_INPUT_LINKS], ap_uint<576> link_out[N_OUTPUT_LINKS]){
+
+rctecalcluster RCTECALClusters[N_CLUSTERS] ;
+
+rcttower RCTTowersPHI[N_TOWERS_IN_PHI][N_TOWERS_IN_ETA];
+
+//reading clusters and towers
+// order of HCAL tower
+
+bool HCALsecondhalfstarts = 1 ;
 
 processInputLinks(link_in, RCTECALClusters, RCTTowersPHI, HCALsecondhalfstarts) ;
 /*---------------------------------link 0------------------------------------*/

@@ -21,6 +21,7 @@ static constexpr int N_BITS_ENERGY = 10;
 static constexpr int N_BITS_TIMING = 5;
 static constexpr int N_BITS_SPIKE = 1;
 static constexpr int N_BITS_TOWER_HCAL = 16;
+static constexpr int N_BITS_HCAL_FBITS = 6;
 static constexpr float LSB_ENERGY = 0.5;
 
 static constexpr int N_TOWERS_PHI = 6;
@@ -304,14 +305,17 @@ class SimpleCaloHit {
     private:
     float et_ = 0.;
     GlobalVector position_;  // As opposed to GlobalPoint, so we can add them (for weighted average)
+    int featurebits_;
 
     public:
     // tool functions
     inline void setEt(float et) { et_ = et; };
     inline void setPosition(const GlobalVector& pos) { position_ = pos; };
+    inline void setFeatureBits(int bits) { featurebits_ = bits; };
 
     inline float et() const { return et_; };
     inline const GlobalVector& position() const { return position_; };
+    inline int featurebits() const { return featurebits_; };
 
     /* 
        * Get crystal's iEta from real eta. (identical to getCrystal_etaID in L1EGammaCrystalsEmulatorProducer.cc)

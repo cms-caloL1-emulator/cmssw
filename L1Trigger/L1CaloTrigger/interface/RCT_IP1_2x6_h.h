@@ -23,7 +23,10 @@ static constexpr int CRYSTALS_IN_ETA23 = 10;
 
 static constexpr int TOWERS_IN_ETA = 2;
 static constexpr int TOWERS_IN_PHI = 6;
-static constexpr int N_CLUSTERS = 3; 
+static constexpr int N_CLUSTERS = 3;
+
+//static constexpr int SEED_THRESHOLD = 2;
+static constexpr int SEED_THRESHOLD = 1023; //dont do any clustering
 
 typedef ap_uint<6> loop;
 

@@ -178,6 +178,10 @@ for(loop i=0; i<CRYSTALS_IN_ETA23; i++){
 
 getseedMax(EtaSlices, Seed) ;
 
+if (Seed.energy < (ap_uint<10>)p2rctIP1_2x6::SEED_THRESHOLD){
+	Seed.eta = (ap_uint<5>)31;
+}
+
 }
 
 inline void getslice(ecalcrystal crystals[CRYSTALS_IN_PHI+4], const ecalcrystal& Seed, ap_uint<12> &value) {
