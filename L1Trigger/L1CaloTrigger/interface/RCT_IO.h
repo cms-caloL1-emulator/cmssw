@@ -436,7 +436,7 @@ class SimpleCaloHit {
     }
 };
 
-void printIP3OutputClusters(ap_uint<576> Data) {
+inline void printIP3OutputClusters(ap_uint<576> Data) {
   ap_uint<10> seed_pt;
   ap_uint<12> pt;
   ap_uint<7> eta;
@@ -478,7 +478,7 @@ void printIP3OutputClusters(ap_uint<576> Data) {
   }
 }
 
-void printIP3OutputTowers(ap_uint<576> Data) {
+inline void printIP3OutputTowers(ap_uint<576> Data) {
   ap_uint<10> et;
   ap_uint<4> hoe;
   ap_uint<2> fb;

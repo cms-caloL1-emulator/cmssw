@@ -69,7 +69,7 @@
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP3_h.h"
 #include "DataFormats/L1TCalorimeterPhase2/interface/RCT_output.h"
 
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 // Declare the Phase2L1CaloMLonRCTSetupProducer class and its methods
 
@@ -395,8 +395,7 @@ void Phase2L1CaloMLonRCTSetupProducer::produce(edm::Event& iEvent, const edm::Ev
 
 //////////////////////////////////////////////////////////////////////////
 
-void Phase2L1CaloL1RCTEmulator::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
-  // l1tPhase2L1CaloL1RCTEmulator
+void Phase2L1CaloMLonRCTSetupProducer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   edm::ParameterSetDescription desc;
   desc.add<edm::InputTag>("ecalTPEB", edm::InputTag("simEcalEBTriggerPrimitiveDigis"));
   desc.add<edm::InputTag>("hcalTP", edm::InputTag("simHcalTriggerPrimitiveDigis"));
