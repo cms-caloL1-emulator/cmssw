@@ -85,9 +85,8 @@ inline void processOutLinks(ecalcluster ECALClustersSorted[N_CLUSTERS],
    for (loop i = 0; i < N_CLUSTERS_OUT; i++) {
 
 	   ap_uint < 7 > slr = ECALClustersSorted[i + 23].spare;
-      //ap_uint < 7 > etatmp = 3 - ECALClustersSorted[i + 23].eta;
-      ap_uint < 7 > etatmp = ECALClustersSorted[i + 23].eta;
-      ap_uint < 7 >  rctEta = etatmp + ((ap_uint < 7 > ) slr << 4) + ((ap_uint < 7 > ) slr << 3) + slr;
+      ap_uint < 7 > etatmp = 75 + ECALClustersSorted[i + 23].eta;
+      ap_uint < 7 >  rctEta = etatmp - ((ap_uint < 7 > ) slr << 4) - ((ap_uint < 7 > ) slr << 3) - slr;
 
       RCTECALClusters[i].fillrctecalcluster2(ECALClustersSorted[i + 23], rctEta, SS_fun);
 
