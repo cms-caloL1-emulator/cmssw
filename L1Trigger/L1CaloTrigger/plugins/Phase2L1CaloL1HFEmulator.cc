@@ -58,7 +58,8 @@
 
 
 // HF CMSSW - firmware interface
-//#include "L1Trigger/L1CaloTrigger/interface/HF_IO.h"
+#include "DataFormats/HcalDigi/interface/HcalDigiCollections.h"
+#include "DataFormats/L1TCalorimeterPhase2/interface/HF_output.h"
 
 
 //HF IP1 header files and data formats
@@ -109,22 +110,22 @@ private:
 
 Phase2L1CaloL1HFEmulator::Phase2L1CaloL1HFEmulator(const edm::ParameterSet& iConfig)
     : hfToken_(consumes<HcalTrigPrimDigiCollection>(iConfig.getParameter<edm::InputTag>("hcalDigis"))) {
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1_0");
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1_1");
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1_2");
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1_3");
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1_4");
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1_5");
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1_6");
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1_7");
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1_8");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1Ch0");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1Ch1");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1Ch2");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1Ch3");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1Ch4");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1Ch5");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1Ch6");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1Ch7");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1Ch8");
   
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2_0");
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2_1");
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2_2");
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2_3");
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2_4");
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2_5");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2Ch0");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2Ch1");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2Ch2");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2Ch3");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2Ch4");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2Ch5");
 }
 
 
@@ -146,8 +147,8 @@ void Phase2L1CaloL1HFEmulator::produce(edm::Event& iEvent, const edm::EventSetup
     int iphi = hit.id().iphi();
     if (ieta < 30 || ieta > 41) continue; // only HF
     if (hit.id().version() != 1) continue; // only version 1
-    tp[ieta - 30][iphi - 1] = ap_uint<10>(hit.compressedEt()) | (ap_uint<10>(hit.fineGrain(0)) << 8) |
-                              (ap_uint<10>(hit.fineGrain(1)) << 9); // get the 10-bit energy value
+    tp[ieta - 30][iphi - 1] = ap_uint<10>(hit.SOI_compressedEt()) | (ap_uint<10>(hit.SOI_fineGrain(0)) << 8) |
+                              (ap_uint<10>(hit.SOI_fineGrain(1)) << 9); // get the 10-bit energy value
   }
 
   // link inde = 3 * sector + chunk, with per-link bitfields [A(0...109), B(110...219)]
@@ -229,22 +230,22 @@ void Phase2L1CaloL1HFEmulator::produce(edm::Event& iEvent, const edm::EventSetup
   link_out_ip2_4->push_back(l1tp2::hfOutputLink(link_out_ip2[4]));
   link_out_ip2_5->push_back(l1tp2::hfOutputLink(link_out_ip2[5]));
 
-  iEvent.put(std::move(link_out_ip1_0), "LinkOutIP1_0");
-  iEvent.put(std::move(link_out_ip1_1), "LinkOutIP1_1");
-  iEvent.put(std::move(link_out_ip1_2), "LinkOutIP1_2");
-  iEvent.put(std::move(link_out_ip1_3), "LinkOutIP1_3");
-  iEvent.put(std::move(link_out_ip1_4), "LinkOutIP1_4");
-  iEvent.put(std::move(link_out_ip1_5), "LinkOutIP1_5");
-  iEvent.put(std::move(link_out_ip1_6), "LinkOutIP1_6");
-  iEvent.put(std::move(link_out_ip1_7), "LinkOutIP1_7");
-  iEvent.put(std::move(link_out_ip1_8), "LinkOutIP1_8");
+  iEvent.put(std::move(link_out_ip1_0), "LinkOutIP1Ch0");
+  iEvent.put(std::move(link_out_ip1_1), "LinkOutIP1Ch1");
+  iEvent.put(std::move(link_out_ip1_2), "LinkOutIP1Ch2");
+  iEvent.put(std::move(link_out_ip1_3), "LinkOutIP1Ch3");
+  iEvent.put(std::move(link_out_ip1_4), "LinkOutIP1Ch4");
+  iEvent.put(std::move(link_out_ip1_5), "LinkOutIP1Ch5");
+  iEvent.put(std::move(link_out_ip1_6), "LinkOutIP1Ch6");
+  iEvent.put(std::move(link_out_ip1_7), "LinkOutIP1Ch7");
+  iEvent.put(std::move(link_out_ip1_8), "LinkOutIP1Ch8");
 
-  iEvent.put(std::move(link_out_ip2_0), "LinkOutIP2_0");
-  iEvent.put(std::move(link_out_ip2_1), "LinkOutIP2_1");
-  iEvent.put(std::move(link_out_ip2_2), "LinkOutIP2_2");
-  iEvent.put(std::move(link_out_ip2_3), "LinkOutIP2_3");
-  iEvent.put(std::move(link_out_ip2_4), "LinkOutIP2_4");
-  iEvent.put(std::move(link_out_ip2_5), "LinkOutIP2_5");
+  iEvent.put(std::move(link_out_ip2_0), "LinkOutIP2Ch0");
+  iEvent.put(std::move(link_out_ip2_1), "LinkOutIP2Ch1");
+  iEvent.put(std::move(link_out_ip2_2), "LinkOutIP2Ch2");
+  iEvent.put(std::move(link_out_ip2_3), "LinkOutIP2Ch3");
+  iEvent.put(std::move(link_out_ip2_4), "LinkOutIP2Ch4");
+  iEvent.put(std::move(link_out_ip2_5), "LinkOutIP2Ch5");
 
 }
 
