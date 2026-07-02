@@ -28,6 +28,8 @@ static constexpr int N_CLUSTERS = 3;
 static constexpr int SEED_THRESHOLD = 2;
 //static constexpr int SEED_THRESHOLD = 1023; //dont do any clustering
 
+using namespace std;
+
 typedef ap_uint<6> loop;
 
 class ecalcrystalmask{
@@ -198,11 +200,19 @@ class ecalcluster{
       (((ap_uint<64>) spare)       << 61);
     }
 
+//    seedEnergy() {return seedEnergy;}
     ap_uint<12> Energy(void) {return energy;}
     ap_uint<5> Eta(void) {return eta;}
     ap_uint<5> Phi(void) {return phi;}
+//    et5x5() {return et5x5;}
+//    et2x5() {return et2x5;}
+//    timing() {return timing;}
+//    spike() {return spike;}
+//    satur() {return satur;}
+//    brems() {return brems;}
     ap_uint<64> Data(void) {return data;}
 	
+//    operator uint64_t() {return (ap_uint<64>) data;}
 
 
 };
@@ -240,6 +250,7 @@ class ecaltower{
 };
 
 void algo_top(ap_uint<576> link_in[N_INPUT_LINKS], ap_uint<576> link_out[N_OUTPUT_LINKS]);
+
 
 } // namespace p2rctIP1_2x6
 
