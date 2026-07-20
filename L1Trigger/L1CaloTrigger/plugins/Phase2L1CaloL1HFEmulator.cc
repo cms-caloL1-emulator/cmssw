@@ -63,25 +63,25 @@
 
 
 //HF IP1 header files and data formats
-#include "L1Trigger/L1CaloTrigger/interface/IP1/algo_topIP1_h.h"
-#include "L1Trigger/L1CaloTrigger/interface/IP1/algo_topIP1_cpp.h"
-#include "L1Trigger/L1CaloTrigger/interface/IP1/hfcommon_cpp.h"
-#include "L1Trigger/L1CaloTrigger/interface/IP1/bubl_sorter_h.h"
+#include "L1Trigger/L1CaloTrigger/interface/HF_IP1/algo_topIP1_h.h"
+#include "L1Trigger/L1CaloTrigger/interface/HF_IP1/algo_topIP1_cpp.h"
+#include "L1Trigger/L1CaloTrigger/interface/HF_IP1/hfcommon_cpp.h"
+#include "L1Trigger/L1CaloTrigger/interface/HF_IP1/bubl_sorter_h.h"
 
 //HF IP2 header files and data formats
-#include "L1Trigger/L1CaloTrigger/interface/IP2/algo_topIP2_h.h"
-#include "L1Trigger/L1CaloTrigger/interface/IP2/algo_topIP2_cpp.h"
-#include "L1Trigger/L1CaloTrigger/interface/IP2/common/bit_encoding.h"
-#include "L1Trigger/L1CaloTrigger/interface/IP2/common/datatypes.h"
-#include "L1Trigger/L1CaloTrigger/interface/IP2/common/hls_reg.h"
-#include "L1Trigger/L1CaloTrigger/interface/IP2/common/layer1_multiplicities.h"
-#include "L1Trigger/L1CaloTrigger/interface/IP2/common/layer1_objs.h"
-#include "L1Trigger/L1CaloTrigger/interface/IP2/common/pairwise_sum_reduce.h"
-#include "L1Trigger/L1CaloTrigger/interface/IP2/common/pf.h"
-#include "L1Trigger/L1CaloTrigger/interface/IP2/common/puppi.h"
-#include "L1Trigger/L1CaloTrigger/interface/IP2/common/firmware/linpuppi.h"
-#include "L1Trigger/L1CaloTrigger/interface/IP2/common/firmware/linpuppi_bits.h"
-#include "L1Trigger/L1CaloTrigger/interface/IP2/common/firmware/linpuppi_cpp.h"
+#include "L1Trigger/L1CaloTrigger/interface/HF_IP2/algo_topIP2_h.h"
+#include "L1Trigger/L1CaloTrigger/interface/HF_IP2/algo_topIP2_cpp.h"
+#include "L1Trigger/L1CaloTrigger/interface/HF_IP2/common/bit_encoding.h"
+#include "L1Trigger/L1CaloTrigger/interface/HF_IP2/common/datatypes.h"
+#include "L1Trigger/L1CaloTrigger/interface/HF_IP2/common/hls_reg.h"
+#include "L1Trigger/L1CaloTrigger/interface/HF_IP2/common/layer1_multiplicities.h"
+#include "L1Trigger/L1CaloTrigger/interface/HF_IP2/common/layer1_objs.h"
+#include "L1Trigger/L1CaloTrigger/interface/HF_IP2/common/pairwise_sum_reduce.h"
+#include "L1Trigger/L1CaloTrigger/interface/HF_IP2/common/pf.h"
+#include "L1Trigger/L1CaloTrigger/interface/HF_IP2/common/puppi.h"
+#include "L1Trigger/L1CaloTrigger/interface/HF_IP2/common/firmware/linpuppi.h"
+#include "L1Trigger/L1CaloTrigger/interface/HF_IP2/common/firmware/linpuppi_bits.h"
+#include "L1Trigger/L1CaloTrigger/interface/HF_IP2/common/firmware/linpuppi_cpp.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Declare the Phase2L1CaloL1HFEmulator class and its methods 
