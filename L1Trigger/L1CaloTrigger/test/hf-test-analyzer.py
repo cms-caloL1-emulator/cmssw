@@ -50,8 +50,10 @@ process.out = cms.OutputModule(
     fileName=cms.untracked.string("hfemu_out.root"),
     outputCommands=cms.untracked.vstring(
         "drop *",
-        "keep *_l1tPhase2HFEmulatorProducer_LinkOutIP1Ch*_*",
-        "keep *_l1tPhase2HFEmulatorProducer_LinkOutIP2Ch*_*",
+        "keep *_l1tPhase2HFEmulatorProducer_LinkOutIP1PosEtaCh*_*",
+        "keep *_l1tPhase2HFEmulatorProducer_LinkOutIP1NegEtaCh*_*",
+        "keep *_l1tPhase2HFEmulatorProducer_LinkOutIP2PosEtaCh*_*",
+        "keep *_l1tPhase2HFEmulatorProducer_LinkOutIP2NegEtaCh*_*",
     ),
 )
 process.end = cms.EndPath(process.out)
