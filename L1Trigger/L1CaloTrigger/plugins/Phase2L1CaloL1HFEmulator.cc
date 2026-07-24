@@ -110,22 +110,39 @@ private:
 
 Phase2L1CaloL1HFEmulator::Phase2L1CaloL1HFEmulator(const edm::ParameterSet& iConfig)
     : hfToken_(consumes<HcalTrigPrimDigiCollection>(iConfig.getParameter<edm::InputTag>("hcalDigis"))) {
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1Ch0");
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1Ch1");
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1Ch2");
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1Ch3");
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1Ch4");
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1Ch5");
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1Ch6");
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1Ch7");
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1Ch8");
-  
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2Ch0");
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2Ch1");
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2Ch2");
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2Ch3");
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2Ch4");
-  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2Ch5");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1PosEtaCh0");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1PosEtaCh1");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1PosEtaCh2");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1PosEtaCh3");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1PosEtaCh4");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1PosEtaCh5");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1PosEtaCh6");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1PosEtaCh7");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1PosEtaCh8");
+
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1NegEtaCh0");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1NegEtaCh1");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1NegEtaCh2");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1NegEtaCh3");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1NegEtaCh4");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1NegEtaCh5");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1NegEtaCh6");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1NegEtaCh7");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1NegEtaCh8");
+
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2PosEtaCh0");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2PosEtaCh1");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2PosEtaCh2");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2PosEtaCh3");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2PosEtaCh4");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2PosEtaCh5");
+
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2NegEtaCh0");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2NegEtaCh1");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2NegEtaCh2");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2NegEtaCh3");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2NegEtaCh4");
+  produces<l1tp2::hfOutputLinkCollection>("LinkOutIP2NegEtaCh5");
 }
 
 
@@ -133,22 +150,25 @@ void Phase2L1CaloL1HFEmulator::produce(edm::Event& iEvent, const edm::EventSetup
   using namespace edm;
 
   // Initialize the 18 input links for the HF emulator
-  ap_uint<576> link_in[N_INPUT_LINKS];
-  for (int i = 0; i < N_INPUT_LINKS; i++) {
-    link_in[i] = 0;
-  }
+  ap_uint<576> link_in_pos[N_INPUT_LINKS] = {};
+  ap_uint<576> link_in_neg[N_INPUT_LINKS] = {};
 
   edm::Handle<HcalTrigPrimDigiCollection> hfHandle;
   iEvent.getByToken(hfToken_, hfHandle);
 
-  ap_uint<10> tp[TOWERS_ETA][TOWERS_PHI] = {};
+  ap_uint<10> tp_pos[TOWERS_ETA][TOWERS_PHI] = {};
+  ap_uint<10> tp_neg[TOWERS_ETA][TOWERS_PHI] = {};
   for (const auto& hit : *hfHandle.product()) {
     int ieta = hit.id().ieta();
     int iphi = hit.id().iphi();
-    if (ieta < 30 || ieta > 41) continue; // only HF
+    if (abs(ieta) < 30 || abs(ieta) > 41) continue; // only HF
     if (hit.id().version() != 1) continue; // only version 1
-    tp[ieta - 30][iphi - 1] = ap_uint<10>(hit.SOI_compressedEt()) | (ap_uint<10>(hit.SOI_fineGrain(0)) << 8) |
-                              (ap_uint<10>(hit.SOI_fineGrain(1)) << 9); // get the 10-bit energy value
+    ap_uint<10> val = ap_uint<10>(hit.SOI_compressedEt()) | (ap_uint<10>(hit.SOI_fineGrain(0)) << 8) |
+                       (ap_uint<10>(hit.SOI_fineGrain(1)) << 9); // get the 10-bit energy value
+    if (ieta > 0)
+      tp_pos[ieta - 30][iphi - 1] = val;
+    else
+      tp_neg[-ieta - 30][iphi - 1] = val;
   }
 
   // link inde = 3 * sector + chunk, with per-link bitfields [A(0...109), B(110...219)]
@@ -162,16 +182,20 @@ void Phase2L1CaloL1HFEmulator::produce(edm::Event& iEvent, const edm::EventSetup
       for (int chunk = 0; chunk < 3; ++chunk) {
         const int linkIdx = 3 * sector + chunk;
         const int phiBase = 12 * sector + 4 * chunk;
-        link_in[linkIdx].range(endA, startA) = tp[i][phiBase];       // A side
-        link_in[linkIdx].range(endB, startB) = tp[i][phiBase + 2];  // B side
+        link_in_pos[linkIdx].range(endA, startA) = tp_pos[i][phiBase]; // A side
+        link_in_pos[linkIdx].range(endB, startB) = tp_pos[i][phiBase + 2]; // B side
+        link_in_neg[linkIdx].range(endA, startA) = tp_neg[i][phiBase];
+        link_in_neg[linkIdx].range(endB, startB) = tp_neg[i][phiBase + 2];
       }
     }
 
     for (int chunk = 0; chunk < 3; ++chunk) {
       const int linkIdx = 3 * sector + chunk;
       const int phiBase = 12 * sector + 4 * chunk;
-      link_in[linkIdx].range(109, 100) = tp[10][phiBase];  // row 10, A side
-      link_in[linkIdx].range(219, 210) = tp[11][phiBase];  // row 11, B side
+      link_in_pos[linkIdx].range(109, 100) = tp_pos[10][phiBase];  // row 10, A side
+      link_in_pos[linkIdx].range(219, 210) = tp_pos[11][phiBase];  // row 11, B side
+      link_in_neg[linkIdx].range(109, 100) = tp_neg[10][phiBase];  // row 10, A side
+      link_in_neg[linkIdx].range(219, 210) = tp_neg[11][phiBase];  // row 11, B side
     }
   }
 
@@ -181,72 +205,45 @@ void Phase2L1CaloL1HFEmulator::produce(edm::Event& iEvent, const edm::EventSetup
   std::cout << "Starting the HF Emulator..." << std::endl;
 
   // Run algo_top (firmware code)
-  ap_uint<576> link_out_ip1[N_OUTPUT_LINKS_CL1 + N_OUTPUT_LINKS_MIX];
-  algo_topIP1(link_in, link_out_ip1);
+  ap_uint<576> link_out_ip1_pos[N_OUTPUT_LINKS_CL1 + N_OUTPUT_LINKS_MIX];
+  ap_uint<576> link_out_ip1_neg[N_OUTPUT_LINKS_CL1 + N_OUTPUT_LINKS_MIX];
+  algo_topIP1(link_in_pos, link_out_ip1_pos);
+  algo_topIP1(link_in_neg, link_out_ip1_neg);
 
-  ap_uint<576> link_in_ip2[N_HF_REGIONS];
-  ap_uint<576> link_out_ip2[N_HF_REGIONS];
+  ap_uint<576> link_in_ip2_pos[N_HF_REGIONS];
+  ap_uint<576> link_out_ip2_pos[N_HF_REGIONS];
+  ap_uint<576> link_in_ip2_neg[N_HF_REGIONS];
+  ap_uint<576> link_out_ip2_neg[N_HF_REGIONS];
 
   // Copy the output of IP1 to the input of IP2
   for (int i = 0; i < N_HF_REGIONS; i++) {
-    link_in_ip2[i] = link_out_ip1[i];
+    link_in_ip2_pos[i] = link_out_ip1_pos[i];
+    link_in_ip2_neg[i] = link_out_ip1_neg[i];
   }
   // Run the IP2 emulator
-  algo_topIP2(link_in_ip2, link_out_ip2);
+  algo_topIP2(link_in_ip2_pos, link_out_ip2_pos);
+  algo_topIP2(link_in_ip2_neg, link_out_ip2_neg);
 
 
-  // put into output collections
-  auto link_out_ip1_0 = std::make_unique<l1tp2::hfOutputLinkCollection>();
-  auto link_out_ip1_1 = std::make_unique<l1tp2::hfOutputLinkCollection>();
-  auto link_out_ip1_2 = std::make_unique<l1tp2::hfOutputLinkCollection>();
-  auto link_out_ip1_3 = std::make_unique<l1tp2::hfOutputLinkCollection>();
-  auto link_out_ip1_4 = std::make_unique<l1tp2::hfOutputLinkCollection>();
-  auto link_out_ip1_5 = std::make_unique<l1tp2::hfOutputLinkCollection>();
-  auto link_out_ip1_6 = std::make_unique<l1tp2::hfOutputLinkCollection>();
-  auto link_out_ip1_7 = std::make_unique<l1tp2::hfOutputLinkCollection>();
-  auto link_out_ip1_8 = std::make_unique<l1tp2::hfOutputLinkCollection>();
+  // put IP1 into output collections
+  for (int i = 0; i < N_OUTPUT_LINKS_CL1 + N_OUTPUT_LINKS_MIX; ++i) {
+    auto col_pos = std::make_unique<l1tp2::hfOutputLinkCollection>();
+    auto col_neg = std::make_unique<l1tp2::hfOutputLinkCollection>();
+    col_pos->push_back(l1tp2::hfOutputLink(link_out_ip1_pos[i]));
+    col_neg->push_back(l1tp2::hfOutputLink(link_out_ip1_neg[i]));
+    iEvent.put(std::move(col_pos), "LinkOutIP1PosEtaCh" + std::to_string(i));
+    iEvent.put(std::move(col_neg), "LinkOutIP1NegEtaCh" + std::to_string(i));
+  }
 
-  auto link_out_ip2_0 = std::make_unique<l1tp2::hfOutputLinkCollection>();
-  auto link_out_ip2_1 = std::make_unique<l1tp2::hfOutputLinkCollection>();
-  auto link_out_ip2_2 = std::make_unique<l1tp2::hfOutputLinkCollection>();
-  auto link_out_ip2_3 = std::make_unique<l1tp2::hfOutputLinkCollection>();
-  auto link_out_ip2_4 = std::make_unique<l1tp2::hfOutputLinkCollection>();
-  auto link_out_ip2_5 = std::make_unique<l1tp2::hfOutputLinkCollection>();
-
-  link_out_ip1_0->push_back(l1tp2::hfOutputLink(link_out_ip1[0]));
-  link_out_ip1_1->push_back(l1tp2::hfOutputLink(link_out_ip1[1]));
-  link_out_ip1_2->push_back(l1tp2::hfOutputLink(link_out_ip1[2]));
-  link_out_ip1_3->push_back(l1tp2::hfOutputLink(link_out_ip1[3]));
-  link_out_ip1_4->push_back(l1tp2::hfOutputLink(link_out_ip1[4]));
-  link_out_ip1_5->push_back(l1tp2::hfOutputLink(link_out_ip1[5]));
-  link_out_ip1_6->push_back(l1tp2::hfOutputLink(link_out_ip1[6]));
-  link_out_ip1_7->push_back(l1tp2::hfOutputLink(link_out_ip1[7]));
-  link_out_ip1_8->push_back(l1tp2::hfOutputLink(link_out_ip1[8]));
-
-  link_out_ip2_0->push_back(l1tp2::hfOutputLink(link_out_ip2[0]));
-  link_out_ip2_1->push_back(l1tp2::hfOutputLink(link_out_ip2[1]));
-  link_out_ip2_2->push_back(l1tp2::hfOutputLink(link_out_ip2[2]));
-  link_out_ip2_3->push_back(l1tp2::hfOutputLink(link_out_ip2[3]));
-  link_out_ip2_4->push_back(l1tp2::hfOutputLink(link_out_ip2[4]));
-  link_out_ip2_5->push_back(l1tp2::hfOutputLink(link_out_ip2[5]));
-
-  iEvent.put(std::move(link_out_ip1_0), "LinkOutIP1Ch0");
-  iEvent.put(std::move(link_out_ip1_1), "LinkOutIP1Ch1");
-  iEvent.put(std::move(link_out_ip1_2), "LinkOutIP1Ch2");
-  iEvent.put(std::move(link_out_ip1_3), "LinkOutIP1Ch3");
-  iEvent.put(std::move(link_out_ip1_4), "LinkOutIP1Ch4");
-  iEvent.put(std::move(link_out_ip1_5), "LinkOutIP1Ch5");
-  iEvent.put(std::move(link_out_ip1_6), "LinkOutIP1Ch6");
-  iEvent.put(std::move(link_out_ip1_7), "LinkOutIP1Ch7");
-  iEvent.put(std::move(link_out_ip1_8), "LinkOutIP1Ch8");
-
-  iEvent.put(std::move(link_out_ip2_0), "LinkOutIP2Ch0");
-  iEvent.put(std::move(link_out_ip2_1), "LinkOutIP2Ch1");
-  iEvent.put(std::move(link_out_ip2_2), "LinkOutIP2Ch2");
-  iEvent.put(std::move(link_out_ip2_3), "LinkOutIP2Ch3");
-  iEvent.put(std::move(link_out_ip2_4), "LinkOutIP2Ch4");
-  iEvent.put(std::move(link_out_ip2_5), "LinkOutIP2Ch5");
-
+  // Put IP2 into output collections
+  for (int i = 0; i < N_HF_REGIONS; ++i) {
+    auto col_pos = std::make_unique<l1tp2::hfOutputLinkCollection>();
+    auto col_neg = std::make_unique<l1tp2::hfOutputLinkCollection>();
+    col_pos->push_back(l1tp2::hfOutputLink(link_out_ip2_pos[i]));
+    col_neg->push_back(l1tp2::hfOutputLink(link_out_ip2_neg[i]));
+    iEvent.put(std::move(col_pos), "LinkOutIP2PosEtaCh" + std::to_string(i));
+    iEvent.put(std::move(col_neg), "LinkOutIP2NegEtaCh" + std::to_string(i));
+  }
 }
 
 
