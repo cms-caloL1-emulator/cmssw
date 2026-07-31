@@ -288,6 +288,35 @@ processOutLinks(RCTECALClusters, RCTTowersPHI, link_out);
 
 }
 
+// Copy of algo_top, but with HCALsecondhalfstarts = 1 (to be called on certain RCT cards, depending on orientation of HCAL links)
+inline void algo_top_HCALsecondhalfstarts(ap_uint<576> link_in[N_INPUT_LINKS], ap_uint<576> link_out[N_OUTPUT_LINKS]){
+//#pragma HLS latency min=145
+
+rctecalcluster RCTECALClusters[N_CLUSTERS] ;
+
+rcttower RCTTowersPHI[N_TOWERS_IN_PHI][N_TOWERS_IN_ETA];
+
+//reading clusters and towers
+// order of HCAL tower
+
+bool HCALsecondhalfstarts = 1 ;
+
+processInputLinks(link_in, RCTECALClusters, RCTTowersPHI, HCALsecondhalfstarts) ;
+//out<< RCTTowersPHI[0][0].energy<<endl;
+//cout<<"RCTTowersPHI[0][0]";
+//cout<< RCTTowersPHI[5][0].energy<<endl;
+//cout<<"RCTTowersPHI[5][0]";
+/*---------------------------------link 0------------------------------------*/
+        
+link_out[0] = 0;
+link_out[1] = 0;
+link_out[2] = 0;
+link_out[3] = 0;
+
+processOutLinks(RCTECALClusters, RCTTowersPHI, link_out);
+
+}
+
 } // namespace p2rctIP3
 
 #endif
