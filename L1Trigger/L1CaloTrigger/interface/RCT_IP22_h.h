@@ -25,6 +25,8 @@ static constexpr int N_CLUSTERS_OUT = 9;
 static constexpr int N_CLUSTERS_5x6 = 9;
 static constexpr int N_CLUSTERS_2x6 = 3;
 
+using namespace std;
+
 typedef ap_uint<8> loop;
 
 class ecalcluster{
