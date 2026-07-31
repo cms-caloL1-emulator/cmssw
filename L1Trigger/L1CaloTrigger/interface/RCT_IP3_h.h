@@ -30,6 +30,8 @@ static constexpr int N_TOWERS_HCAL_IN_ETA = 16;
 
 static constexpr int N_TOWERS_IN_HCAL_REGION = 32;
 
+using namespace std;
+
 typedef ap_uint<8> loop;
 
 class rctecalcluster{
@@ -121,10 +123,18 @@ class rctecalcluster{
       (((ap_uint<64>) spare)       << 60);
     }
 
+//    seedEnergy() {return seedEnergy;}
     ap_uint<12> Energy(void) {return energy;}
     ap_uint<7> Eta(void) {return eta;}
     ap_uint<5> Phi(void) {return phi;}
+//    et5x5() {return et5x5;}
+//    et2x5() {return et2x5;}
+//    timing() {return timing;}
+//    spike() {return spike;}
+//    satur() {return satur;}
+//    brems() {return brems;}
     ap_uint<64> Data(void) {return data;}
+//    operator uint64_t() {return (ap_uint<64>) data;}
 
 
 };
