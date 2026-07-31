@@ -65,7 +65,7 @@
 
 // RCT IP21 header files and data formats
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP21_h.h"
-#include "L1Trigger/L1CaloTrigger/interface/bitonicSort32_h.h"
+#include "L1Trigger/L1CaloTrigger/interface/bubl_sorter_h.h"
 
 //////////////////////////////////////////////////////////////////////////
 
