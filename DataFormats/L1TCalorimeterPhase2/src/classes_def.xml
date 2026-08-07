@@ -66,5 +66,9 @@
   <class name="std::vector<l1tp2::rctOutputLink>" />
   <class name="l1tp2::rctOutputLinkCollection" />
   <class name="edm::Wrapper<l1tp2::rctOutputLinkCollection>" />
+  <class name="l1tp2::hfOutputLink" /> <class 
+  name="std::vector<l1tp2::hfOutputLink>" /> <class 
+  name="l1tp2::hfOutputLinkCollection" /> <class 
+  name="edm::Wrapper<l1tp2::hfOutputLinkCollection>" />
 </lcgdict>
 
