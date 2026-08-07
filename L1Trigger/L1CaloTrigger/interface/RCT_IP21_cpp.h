@@ -65,7 +65,7 @@
 
 // RCT IP21 header files and data formats
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP21_h.h"
-#include "L1Trigger/L1CaloTrigger/interface/bitonicSort32_h.h"
+#include "L1Trigger/L1CaloTrigger/interface/bubl_sorter_h.h"
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -83,13 +83,16 @@ inline void processOutLinks(ecalcluster ECALClustersSorted[N_CLUSTERS],
 
 //threshhold calibration for top 9 clusters
    for (loop i = 0; i < N_CLUSTERS_OUT; i++) {
+      ap_uint < 7 > slr = ECALClustersSorted[i + 23].spare;
+      //ap_uint < 7 > etatmp = 3 - ECALClustersSorted[i + 23].eta;
+      ap_uint < 7 > etatmp = ECALClustersSorted[i + 23].eta;
 
-	   ap_uint < 7 > slr = ECALClustersSorted[i + 23].spare;
-      ap_uint < 7 > etatmp = 75 + ECALClustersSorted[i + 23].eta;
-      ap_uint < 7 >  rctEta = etatmp - ((ap_uint < 7 > ) slr << 4) - ((ap_uint < 7 > ) slr << 3) - slr;
+      ap_uint < 7 >  rctEta = etatmp + ((ap_uint < 7 > ) slr << 4) + ((ap_uint < 7 > ) slr << 3) + slr;
+      //rctEta = etatmp + (slr == 0 ? 0 : (slr == 1 ? 9 : (slr == 2 ? 24 : 59)));
+
+
 
       RCTECALClusters[i].fillrctecalcluster2(ECALClustersSorted[i + 23], rctEta, SS_fun);
-
    }
 
 
@@ -97,6 +100,7 @@ inline void processOutLinks(ecalcluster ECALClustersSorted[N_CLUSTERS],
    for (loop i = 0; i < N_CLUSTERS_OUT; i++) {
       start = i * 64;
       end = start + 63;
+      //cout<<RCTECALClusters[i].energy<<endl; //<<-------------------------------------------------------------
       link_out[0].range(end, start) = RCTECALClusters[i].getrctecalcluster();
    }
 
@@ -256,32 +260,6 @@ inline void stitchClusters(ecalcluster ECALClustersLowEta[N_CLUSTERS_5x6], ecalc
 
 }
 
-const int DELAY_CYCLES = 30;  // Number of clock cycles for the delay
-
-inline void delay_specific_links(ap_uint<576> link_in[N_INPUT_LINKS], ap_uint<576> link_out[N_INPUT_LINKS]) {
-    // Shift register arrays for links 4, 5, 6, and 7
-    ap_uint<576> shift_registers[4][DELAY_CYCLES];
-
-    // Delay logic for specific links 4, 5, 6, and 7
-    for (int i = 0; i < 4; i++) {
-        // Shift register logic for each delayed link
-        for (int j = DELAY_CYCLES - 1; j > 0; j--) {
-            shift_registers[i][j] = shift_registers[i][j - 1];
-        }
-        // Load the current input value into the first stage
-        shift_registers[i][0] = link_in[i + 4];
-
-        // Assign the delayed output from the last stage of the shift register to link_out
-        link_out[i + 4] = shift_registers[i][DELAY_CYCLES - 1];
-    }
-
-    // Pass through other links without delay
-    for (int i = 0; i < N_INPUT_LINKS; i++) {
-        if (i < 4 || i > 7) {
-            link_out[i] = link_in[i];
-        }
-    }
-}
 
 inline void algo_top(ap_uint < 576 > link_in[N_INPUT_LINKS], ap_uint < 576 > link_out[N_OUTPUT_LINKS],
    ap_uint < 7 > ss_fun0, ap_uint < 7 > ss_fun1, ap_uint < 7 > ss_fun2, ap_uint < 7 > ss_fun3,
@@ -352,7 +330,9 @@ inline void algo_top(ap_uint < 576 > link_in[N_INPUT_LINKS], ap_uint < 576 > lin
       ECALClusters[3 * N_CLUSTERS_5x6 + i].spare = 0;
    }
 
-   p2rctIP21::bitonicSort32(ECALClusters, ECALClustersSorted);
+   //bitonicSort32(ECALClusters, ECALClustersSorted);
+
+   bubl_sorter(ECALClusters, ECALClustersSorted);
 
    /*---------------------------------link 0------------------------------------*/
 

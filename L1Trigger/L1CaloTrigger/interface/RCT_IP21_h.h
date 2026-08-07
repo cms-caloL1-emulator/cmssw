@@ -25,6 +25,8 @@ static constexpr int N_CLUSTERS_OUT = 9;
 static constexpr int N_CLUSTERS_5x6 = 9;
 static constexpr int N_CLUSTERS_2x6 = 3;
 
+using namespace std;
+
 typedef ap_uint<8> loop;
 
 class ecalcluster{
@@ -120,8 +122,15 @@ class ecalcluster{
     ap_uint<12> Energy(void) {return energy;}
     ap_uint<5> Eta(void) {return eta;}
     ap_uint<5> Phi(void) {return phi;}
+//    et5x5() {return et5x5;}
+//    et2x5() {return et2x5;}
+//    timing() {return timing;}
+//    spike() {return spike;}
+//    satur() {return satur;}
+//    brems() {return brems;}
     ap_uint<64> Data(void) {return data;}
 	
+//    operator uint64_t() {return (ap_uint<64>) data;}
 
 
 };
@@ -204,6 +213,7 @@ class rctecalcluster{
     void fillrctecalcluster2(ecalcluster i, ap_uint<7> eta,ap_uint<7> SS_fun[25]){
    
 	ap_uint<7> WPs=1 ;
+	//ap_uint<7> SS_fun[25] = {126, 125, 125, 124, 123, 123, 122, 122, 121, 121, 121, 121, 121, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120} ;
 
 	for(loop j=0; j<25; j++){
 	bool one = ( i.energy >= ((loop)j<<2)) ? true : false ;
@@ -219,6 +229,7 @@ class rctecalcluster{
 	bool three = ( left < right ) ? true : false ;
 	if ( one && two && three)  WPs=0;
 	}
+	//WPs=1;
 
     	this->seedEnergy = i.seedEnergy;
     	this->energy = i.energy;
@@ -248,16 +259,26 @@ class rctecalcluster{
       (((ap_uint<64>) spare)       << 60);
     }
 
+//    seedEnergy() {return seedEnergy;}
     ap_uint<12> Energy(void) {return energy;}
     ap_uint<5> Eta(void) {return eta;}
     ap_uint<5> Phi(void) {return phi;}
+//    et5x5() {return et5x5;}
+//    et2x5() {return et2x5;}
+//    timing() {return timing;}
+//    spike() {return spike;}
+//    satur() {return satur;}
+//    brems() {return brems;}
     ap_uint<64> Data(void) {return data;}
 	
+//    operator uint64_t() {return (ap_uint<64>) data;}
 
 
 };
 
 
+
+//void algo_top(ap_uint<576> link_in[N_INPUT_LINKS], ap_uint<576> link_out[N_OUTPUT_LINKS]);
 void algo_top(ap_uint<576> link_in[N_INPUT_LINKS], ap_uint<576> link_out[N_OUTPUT_LINKS], ap_uint<7> ss_fun0, ap_uint<7> ss_fun1, ap_uint<7> ss_fun2, ap_uint<7> ss_fun3,
         ap_uint<7> ss_fun4, ap_uint<7> ss_fun5, ap_uint<7> ss_fun6, ap_uint<7> ss_fun7,
         ap_uint<7> ss_fun8, ap_uint<7> ss_fun9, ap_uint<7> ss_fun10, ap_uint<7> ss_fun11,

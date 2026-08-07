@@ -72,28 +72,28 @@
 
 namespace p2rctIP1_5x6 {
 
-inline void processOutputLinks(ecalcluster ecalclustersH1[N_CLUSTERS], ecalcluster ecalclustersH2[N_CLUSTERS], ecalcluster ecalclustersH3[N_CLUSTERS], ecaltower ecaltowers[TOWERS_IN_ETA*TOWERS_IN_PHI], ap_uint<576> link_out[N_OUTPUT_LINKS]){
+inline void processOutputLinks(ecalcluster ECALClustersH1[N_CLUSTERS], ecalcluster ECALClustersH2[N_CLUSTERS], ecalcluster ECALClustersH3[N_CLUSTERS], ecaltower ECALTowers[TOWERS_IN_ETA*TOWERS_IN_PHI], ap_uint<576> link_out[N_OUTPUT_LINKS]){
 
 ap_uint<10> start;
 ap_uint<10> end;
 
 for(loop i=0; i<N_CLUSTERS; i++){
 	start=i*64 ; end=start+63;
-	link_out[0].range(end, start) = ecalclustersH1[i].getecalcluster() ;
+	link_out[0].range(end, start) = ECALClustersH1[i].getecalcluster() ;
 	start=(3+i)*64 ; end=start+63;
-	link_out[0].range(end, start) = ecalclustersH2[i].getecalcluster() ;
+	link_out[0].range(end, start) = ECALClustersH2[i].getecalcluster() ;
 	start=(6+i)*64 ; end=start+63;
-    link_out[0].range(end, start) = ecalclustersH3[i].getecalcluster() ;
+    link_out[0].range(end, start) = ECALClustersH3[i].getecalcluster() ;
 }
 
 for(loop i=0; i<TOWERS_IN_ETA*TOWERS_IN_PHI; i++){
 	start=i*18 ; end=start+17;
-	link_out[1].range(end, start) = ecaltowers[i].getecaltower() ;
+	link_out[1].range(end, start) = ECALTowers[i].getecaltower() ;
 }
 
 }
 
-inline void processInputLinks(ap_uint<576> link_in[N_INPUT_LINKS], ecalcrystal ecalcrystals[CRYSTALS_IN_ETA][CRYSTALS_IN_PHI]){
+inline void processInputLinks(ap_uint<576> link_in[N_INPUT_LINKS], ecalcrystal ECALCrystals[CRYSTALS_IN_ETA][CRYSTALS_IN_PHI]){
 
 ap_uint<6> wordId;
 ap_uint<6> startId;
@@ -104,7 +104,7 @@ for(loop i=0; i<CRYSTALS_IN_ETA; i++){
     startId = (i%5)*5+(j%5);
     ap_uint<10> start   = startId*16;
     ap_uint<10> end = start + 15;
-    ecalcrystals[i][j] = ecalcrystal(link_in[wordId].range(end, start));
+    ECALCrystals[i][j] = ecalcrystal(link_in[wordId].range(end, start));
   }
 }
 
@@ -173,7 +173,18 @@ ecalcrystal crystals1D[CRYSTALS_IN_PHI];
 
 ecalcrystal tmp ;
 
-for(loop i=0; i<CRYSTALS_IN_ETA23; i++){
+int loop_var =0;
+
+for(loop i=0; i<1; i++){
+	loop_var +=1;
+	for(loop j=0; j<CRYSTALS_IN_PHI; j++){
+        tmp = crystals[i][j] ;
+        crystals1D[j] = tmp ;
+	}
+	getseedEta(crystals1D, EtaSlices[i]) ;
+}
+
+for(loop i=loop_var; i<CRYSTALS_IN_ETA23; i++){
 	for(loop j=0; j<CRYSTALS_IN_PHI; j++){
         tmp = crystals[i][j] ;
         crystals1D[j] = tmp ;
@@ -182,10 +193,6 @@ for(loop i=0; i<CRYSTALS_IN_ETA23; i++){
 }
 
 getseedMax(EtaSlices, Seed) ;
-
-if (Seed.energy < (ap_uint<10>)p2rctIP1_5x6::SEED_THRESHOLD){
-	Seed.eta = (ap_uint<5>)31;
-}
 
 }
 
@@ -200,7 +207,21 @@ for(loop j=0; j<CRYSTALS_IN_PHI; j++){
     mask[j].energy = 0 ;
 }
 
-for(loop j=0; j<CRYSTALS_IN_PHI; j++){
+int loop_var =0;
+for(loop j=0; j<1; j++){
+	loop_var +=1;
+	if(j == Seed.phi){
+		mask[j+0].energy = 1;
+        mask[j+1].energy = 1;
+        mask[j+2].energy = 1;
+        mask[j+3].energy = 1;
+        mask[j+4].energy = 1;
+
+    }
+else {}
+}
+
+for(loop j=loop_var; j<CRYSTALS_IN_PHI; j++){
 	if(j == Seed.phi){
 		mask[j+0].energy = 1;
         mask[j+1].energy = 1;
@@ -211,7 +232,16 @@ for(loop j=0; j<CRYSTALS_IN_PHI; j++){
 else {}
 }
 
-for(loop j=0; j<CRYSTALS_IN_PHI+4; j++){
+int loop_var_1=0;
+for(loop j=0; j<1; j++){
+    ap_uint<10> energytmp = crystals[j].energy ;
+    ap_uint<10> energy = energytmp *  mask[j].energy ;
+    ap_uint<12> tmp = tmpValue + energy ;
+    tmpValue = tmp  ;
+    loop_var_1+=1;
+}
+
+for(loop j=loop_var_1; j<CRYSTALS_IN_PHI+4; j++){
     ap_uint<10> energytmp = crystals[j].energy ;
     ap_uint<10> energy = energytmp *  mask[j].energy ;
     ap_uint<12> tmp = tmpValue + energy ;
@@ -220,7 +250,7 @@ for(loop j=0; j<CRYSTALS_IN_PHI+4; j++){
 value = tmpValue ;
 }
 
-inline void zerrocrystals(ecalcrystal ecalcrystals[CRYSTALS_IN_ETA23][CRYSTALS_IN_PHI], ecalcrystal Seed, ap_uint<2> brems) {
+inline void zerrocrystals(ecalcrystal ECALCrystals[CRYSTALS_IN_ETA23][CRYSTALS_IN_PHI], ecalcrystal Seed, ap_uint<2> brems) {
 
 ecalcrystalmask mask[CRYSTALS_IN_ETA23][CRYSTALS_IN_PHI] ;
 ecalcrystalmask maskN[CRYSTALS_IN_ETA23][CRYSTALS_IN_PHI] ;
@@ -229,7 +259,13 @@ ecalcrystalmask maskI[CRYSTALS_IN_ETA23][CRYSTALS_IN_PHI] ;
 
 ap_uint<5> eta = Seed.eta ;
 
-for(loop i=0; i<CRYSTALS_IN_ETA23; i++){
+//*************" loop 1"*******************************
+
+
+int loop_var_1=0;
+
+for(loop i=0; i<1; i++){
+	loop_var_1 +=0;
 	if(i+1 >= eta && i <= eta+1){
     for(loop j=0; j<CRYSTALS_IN_PHI; j++){
     	if(j+7 >= Seed.phi && j+3 <= Seed.phi ) maskN[i][j].energy=1 ;
@@ -237,7 +273,21 @@ for(loop i=0; i<CRYSTALS_IN_ETA23; i++){
 	}
 }
 
-for(loop i=0; i<CRYSTALS_IN_ETA23; i++){
+
+for(loop i=loop_var_1; i<CRYSTALS_IN_ETA23; i++){
+	if(i+1 >= eta && i <= eta+1){
+    for(loop j=0; j<CRYSTALS_IN_PHI; j++){
+    	if(j+7 >= Seed.phi && j+3 <= Seed.phi ) maskN[i][j].energy=1 ;
+        }
+	}
+}
+
+//*************" loop 2"*******************************
+
+
+int loop_var_2 =0;
+for(loop i=0; i<1; i++){
+	loop_var_2 += 1;
 	if(i+1 >= eta && i <= eta+1){
 	for(loop j=0; j<CRYSTALS_IN_PHI; j++){
 		if(j+2 >= Seed.phi && j <= Seed.phi+2 ) mask[i][j].energy =1 ;
@@ -245,7 +295,21 @@ for(loop i=0; i<CRYSTALS_IN_ETA23; i++){
 	}
 }
 
-for(loop i=0; i<CRYSTALS_IN_ETA23; i++){
+for(loop i=loop_var_2; i<CRYSTALS_IN_ETA23; i++){
+	if(i+1 >= eta && i <= eta+1){
+	for(loop j=0; j<CRYSTALS_IN_PHI; j++){
+		if(j+2 >= Seed.phi && j <= Seed.phi+2 ) mask[i][j].energy =1 ;
+		}
+	}
+}
+
+
+//*************" loop 3"*******************************
+
+int loop_var_3 = 0;
+
+for(loop i=0; i<1; i++){
+	loop_var_3 += 1;
 	if(i+1 >= eta && i <= eta+1){
         for(loop j=0; j<CRYSTALS_IN_PHI; j++){
         if(j >= Seed.phi+3 && j <= Seed.phi+7 ) maskP[i][j].energy=1 ;
@@ -253,41 +317,105 @@ for(loop i=0; i<CRYSTALS_IN_ETA23; i++){
 	}
 }
 
-for(loop i=0; i<CRYSTALS_IN_ETA23; i++){
+
+for(loop i=loop_var_3; i<CRYSTALS_IN_ETA23; i++){
+	if(i+1 >= eta && i <= eta+1){
+        for(loop j=0; j<CRYSTALS_IN_PHI; j++){
+        if(j >= Seed.phi+3 && j <= Seed.phi+7 ) maskP[i][j].energy=1 ;
+        }
+	}
+}
+
+
+//*************" loop 4"*******************************
+
+int loop_var_4 =0;
+
+for(loop i=0; i<1; i++){
+	loop_var_4 += 1;
 	for(loop j=0; j<CRYSTALS_IN_PHI; j++){
         maskI[i][j].energy = ((ap_uint<1>)1 - mask[i][j].energy) ;
     }
 }
 
+for(loop i=loop_var_4; i<CRYSTALS_IN_ETA23; i++){
+	for(loop j=0; j<CRYSTALS_IN_PHI; j++){
+        maskI[i][j].energy = ((ap_uint<1>)1 - mask[i][j].energy) ;
+    }
+}
+
+
+//*************" loop 5"*******************************
+
 if(brems == 1){
-for(loop i=0; i<CRYSTALS_IN_ETA23; i++){
+
+	int loop_var_5 =0;
+
+for(loop i=0; i<1; i++){
+	loop_var_5 += 1;
 	for(loop j=0; j<CRYSTALS_IN_PHI; j++){
 		ap_uint<1> mask0 = maskI[i][j].energy * ((ap_uint<1>)1 - maskN[i][j].energy) ;
         maskI[i][j].energy = mask0 ;
        	}
 	}
+
+for(loop i=loop_var_5; i<CRYSTALS_IN_ETA23; i++){
+	for(loop j=0; j<CRYSTALS_IN_PHI; j++){
+		ap_uint<1> mask0 = maskI[i][j].energy * ((ap_uint<1>)1 - maskN[i][j].energy) ;
+        maskI[i][j].energy = mask0 ;
+       	}
+	}
+
 }
 
+
+//*************" loop 6"*******************************
+
 if(brems == 2){
-for(loop i=0; i<CRYSTALS_IN_ETA23; i++){
+
+	int loop_var_6=0;
+
+
+for(loop i=0; i<1; i++){
+	loop_var_6 += 1;
 	for(loop j=0; j<CRYSTALS_IN_PHI; j++){
 		ap_uint<1> mask0 = maskI[i][j].energy * ((ap_uint<1>)1 - maskP[i][j].energy) ;
 		maskI[i][j].energy = mask0 ;
 	}
 }
+
+	for(loop i=loop_var_6; i<CRYSTALS_IN_ETA23; i++){
+		for(loop j=0; j<CRYSTALS_IN_PHI; j++){
+			ap_uint<1> mask0 = maskI[i][j].energy * ((ap_uint<1>)1 - maskP[i][j].energy) ;
+			maskI[i][j].energy = mask0 ;
+		}
+	}
 }
 
-for(loop i=0; i<CRYSTALS_IN_ETA23; i++){
+
+//*************" loop 7"*******************************
+int loop_var_7 =0;
+
+for(loop i=0; i<1; i++){
+	loop_var_7 += 1;
 	for(loop j=0; j<CRYSTALS_IN_PHI; j++){
-		ap_uint<10> tmp = ecalcrystals[i][j].energy ;
+		ap_uint<10> tmp = ECALCrystals[i][j].energy ;
 		ap_uint<10> energy = tmp * maskI[i][j].energy  ;
-        ecalcrystals[i][j].energy = energy ;
+        ECALCrystals[i][j].energy = energy ;
+	}
+}
+
+for(loop i=loop_var_7; i<CRYSTALS_IN_ETA23; i++){
+	for(loop j=0; j<CRYSTALS_IN_PHI; j++){
+		ap_uint<10> tmp = ECALCrystals[i][j].energy ;
+		ap_uint<10> energy = tmp * maskI[i][j].energy  ;
+        ECALCrystals[i][j].energy = energy ;
 	}
 }
 
 }
 
-inline void getcluster(ecalcrystal ecalcrystals[CRYSTALS_IN_ETA23][CRYSTALS_IN_PHI], ecalcrystal Seed, ecalcluster &output) {
+inline void getcluster(ecalcrystal ECALCrystals[CRYSTALS_IN_ETA23][CRYSTALS_IN_PHI], ecalcrystal Seed, ecalcluster &output) {
 
 ap_uint<2> brems = 0 ;
 ap_uint<12> NegValue=0, CntrValue=0, PosValue=0 ;
@@ -298,13 +426,29 @@ ap_uint<12> PosSlice[5] ;
 
 ecalcrystal extendedcrystals[CRYSTALS_IN_ETA23+4][CRYSTALS_IN_PHI+4] ;
 
-for(loop i=0; i<CRYSTALS_IN_ETA23; i++){
+
+
+//************1st loop*********************
+int loop_var_1=0;
+for(loop i=0; i<1; i++){
+	loop_var_1 += 1;
     for(loop j=0; j<CRYSTALS_IN_PHI; j++){
-        extendedcrystals[i+2][j+2].energy = ecalcrystals[i][j].energy ;
+        extendedcrystals[i+2][j+2].energy = ECALCrystals[i][j].energy ;
 	}
 }
 
-for(loop i=0; i<CRYSTALS_IN_ETA23; i++){
+for(loop i=loop_var_1; i<CRYSTALS_IN_ETA23; i++){
+    for(loop j=0; j<CRYSTALS_IN_PHI; j++){
+        extendedcrystals[i+2][j+2].energy = ECALCrystals[i][j].energy ;
+	}
+}
+
+
+//**************2nd loop**************
+int loop_var_2=0;
+
+for(loop i=0; i<1; i++){
+	loop_var_2 += 1;
 	if(i == Seed.eta){
 		for(loop k=0; k<5; k++){
 		   ecalcrystal extendedcrystals1D[CRYSTALS_IN_PHI+4] ;
@@ -317,6 +461,23 @@ for(loop i=0; i<CRYSTALS_IN_ETA23; i++){
 	else { }
 }
 
+for(loop i=loop_var_2; i<CRYSTALS_IN_ETA23; i++){
+	if(i == Seed.eta){
+		for(loop k=0; k<5; k++){
+		   ecalcrystal extendedcrystals1D[CRYSTALS_IN_PHI+4] ;
+		   	   for(loop j=0; j<CRYSTALS_IN_PHI+4; j++){
+		   		   extendedcrystals1D[j].energy = extendedcrystals[i+k][j].energy ;
+		   	   }
+	       getslice(extendedcrystals1D, Seed, CntrSlice[k]) ;
+         }
+	}
+	else { }
+}
+
+
+
+
+//***************3rd loop*************
 
 for(loop i=0; i<CRYSTALS_IN_ETA23; i++){
 	if(i == Seed.eta){
@@ -378,46 +539,56 @@ output.et5x5 = s5x5 ;
 
 }
 
-inline void createClusters1(ecalcrystal crystals[CRYSTALS_IN_ETA23][CRYSTALS_IN_PHI], ecalcluster ecalclusters[N_CLUSTERS]) {
+inline void createClusters1(ecalcrystal crystals[CRYSTALS_IN_ETA23][CRYSTALS_IN_PHI], ecalcluster ECALClusters[N_CLUSTERS]) {
 
 ecalcrystal Seed ;
 
-for(loop k=0; k<N_CLUSTERS; k++){
+int loop_var =0;
+
+for(loop k=0; k<1; k++){
+	loop_var += 1;
 	getseedposition(crystals, Seed) ;
-	getcluster(crystals,Seed,ecalclusters[k]) ;
-	zerrocrystals(crystals, Seed, ecalclusters[k].brems) ;
+	getcluster(crystals,Seed,ECALClusters[k]) ;
+	zerrocrystals(crystals, Seed, ECALClusters[k].brems) ;
 }
+
+for(loop k=loop_var; k<N_CLUSTERS; k++){
+	getseedposition(crystals, Seed) ;
+	getcluster(crystals,Seed,ECALClusters[k]) ;
+	zerrocrystals(crystals, Seed, ECALClusters[k].brems) ;
+}
+
 
 }
 
-inline void createTowers(ecalcrystal crystals[CRYSTALS_IN_ETA][CRYSTALS_IN_PHI],ecaltower ecaltowers[TOWERS_IN_ETA*TOWERS_IN_PHI]) {
+inline void createTowers(ecalcrystal crystals[CRYSTALS_IN_ETA][CRYSTALS_IN_PHI],ecaltower ECALTowers[TOWERS_IN_ETA*TOWERS_IN_PHI]) {
 
 for(loop i=0; i<CRYSTALS_IN_ETA; i++){
 	for(loop j=0; j<CRYSTALS_IN_PHI; j++){
-	   ap_uint<12> energy = ecaltowers[i/5*6+j/5].energy + crystals[i][j].energy  ;
-		ecaltowers[i/5*6+j/5].energy = energy  ;
-		ecaltowers[i/5*6+j/5].timing = 0 ;
-		ecaltowers[i/5*6+j/5].spike = 0 ;
+	   ap_uint<12> energy = ECALTowers[i/5*6+j/5].energy + crystals[i][j].energy  ;
+		ECALTowers[i/5*6+j/5].energy = energy  ;
+		ECALTowers[i/5*6+j/5].timing = 0 ;
+		ECALTowers[i/5*6+j/5].spike = 0 ;
 	}
 }
 }
 
 inline void algo_top(ap_uint<576> link_in[N_INPUT_LINKS], ap_uint<576> link_out[N_OUTPUT_LINKS]){
 
-ecalcluster ecalclusters[N_CLUSTERS] ;
-ecalcluster ecalclustersH1[N_CLUSTERS] ;
-ecalcluster ecalclustersH2[N_CLUSTERS] ;
-ecalcluster ecalclustersH3[N_CLUSTERS] ;
-ecalcrystal ecalcrystals[CRYSTALS_IN_ETA][CRYSTALS_IN_PHI];
-ecalcrystal ecalcrystalsH1[CRYSTALS_IN_ETA23][CRYSTALS_IN_PHI];
-ecalcrystal ecalcrystalsH2[CRYSTALS_IN_ETA23][CRYSTALS_IN_PHI];
-ecalcrystal ecalcrystalsH3[CRYSTALS_IN_ETA23][CRYSTALS_IN_PHI];
+ecalcluster ECALClusters[N_CLUSTERS] ;
+ecalcluster ECALClustersH1[N_CLUSTERS] ;
+ecalcluster ECALClustersH2[N_CLUSTERS] ;
+ecalcluster ECALClustersH3[N_CLUSTERS] ;
+ecalcrystal ECALCrystals[CRYSTALS_IN_ETA][CRYSTALS_IN_PHI];
+ecalcrystal ECALCrystalsH1[CRYSTALS_IN_ETA23][CRYSTALS_IN_PHI];
+ecalcrystal ECALCrystalsH2[CRYSTALS_IN_ETA23][CRYSTALS_IN_PHI];
+ecalcrystal ECALCrystalsH3[CRYSTALS_IN_ETA23][CRYSTALS_IN_PHI];
 
-ecaltower ecaltowers[TOWERS_IN_ETA*TOWERS_IN_PHI];
+ecaltower ECALTowers[TOWERS_IN_ETA*TOWERS_IN_PHI];
 
 //creating 25x30 crystals matrix
 
-processInputLinks(link_in, ecalcrystals) ;
+processInputLinks(link_in, ECALCrystals) ;
           
 // 25 crystals in eta are divided into 3 regions
 // to create 3 regions, 11 eta each, with 2 eta overlap
@@ -426,42 +597,42 @@ processInputLinks(link_in, ecalcrystals) ;
   
 for(loop i=0; i<CRYSTALS_IN_ETA23; i++){
 	for(loop j=0; j<CRYSTALS_IN_PHI; j++){
-		ecalcrystalsH1[i][j] = ecalcrystals[i][j];
-		ecalcrystalsH1[i][j].eta = i;
-		ecalcrystalsH1[i][j].phi = j;
+		ECALCrystalsH1[i][j] = ECALCrystals[i][j];
+		ECALCrystalsH1[i][j].eta = i;
+		ECALCrystalsH1[i][j].phi = j;
 	}
 }
 
 for(loop i=0; i<CRYSTALS_IN_ETA23; i++){
 	for(loop j=0; j<CRYSTALS_IN_PHI; j++){
-		ecalcrystalsH2[i][j] = ecalcrystals[CRYSTALS_IN_ETA23+i-4][j];
-		ecalcrystalsH2[i][j].eta = i;
-		ecalcrystalsH2[i][j].phi = j;
+		ECALCrystalsH2[i][j] = ECALCrystals[CRYSTALS_IN_ETA23+i-4][j];
+		ECALCrystalsH2[i][j].eta = i;
+		ECALCrystalsH2[i][j].phi = j;
 	}
 }
 
 for(loop i=0; i<CRYSTALS_IN_ETA23; i++){
 	for(loop j=0; j<CRYSTALS_IN_PHI; j++){
-		ecalcrystalsH3[i][j] = ecalcrystals[CRYSTALS_IN_ETA23+i+3][j];
-		ecalcrystalsH3[i][j].eta = i;
-		ecalcrystalsH3[i][j].phi = j;
+		ECALCrystalsH3[i][j] = ECALCrystals[CRYSTALS_IN_ETA23+i+3][j];
+		ECALCrystalsH3[i][j].eta = i;
+		ECALCrystalsH3[i][j].phi = j;
 	}
 }
 
 // each region is treated in the same way and later we combine them back in one
 //
-createClusters1(ecalcrystalsH1, ecalclustersH1);
-createClusters1(ecalcrystalsH2, ecalclustersH2);
-createClusters1(ecalcrystalsH3, ecalclustersH3);
+createClusters1(ECALCrystalsH1, ECALClustersH1);
+createClusters1(ECALCrystalsH2, ECALClustersH2);
+createClusters1(ECALCrystalsH3, ECALClustersH3);
 
 for(loop i=0; i<N_CLUSTERS; i++){
-	ap_uint<5> eta = ecalclustersH2[i].eta + 7;
-	ecalclustersH2[i].eta = eta ;
+	ap_uint<5> eta = ECALClustersH2[i].eta + 7;
+	ECALClustersH2[i].eta = eta ;
 }
 
 for(loop i=0; i<N_CLUSTERS; i++){
-	ap_uint<5> eta = ecalclustersH3[i].eta + 14;
-	ecalclustersH3[i].eta = eta ;
+	ap_uint<5> eta = ECALClustersH3[i].eta + 14;
+	ECALClustersH3[i].eta = eta ;
 }
 
 //  0...8 9.10 - 7.8 9...15 16.17 - 14.15 16...24 
@@ -469,18 +640,18 @@ for(loop i=0; i<N_CLUSTERS; i++){
 //
 for(loop i=0; i<N_CLUSTERS; i++){
 	for(loop k=0; k<N_CLUSTERS; k++){
-		if(ecalclustersH1[i].eta == ecalclustersH2[k].eta && ecalclustersH1[i].phi == ecalclustersH2[k].phi){
-		if(ecalclustersH1[i].eta >= 9) { ecalclustersH1[i].energy = 0 ; }
-		else {ecalclustersH2[k].energy = 0 ;}
+		if(ECALClustersH1[i].eta == ECALClustersH2[k].eta && ECALClustersH1[i].phi == ECALClustersH2[k].phi){
+		if(ECALClustersH1[i].eta >= 9) { ECALClustersH1[i].energy = 0 ; }
+		else {ECALClustersH2[k].energy = 0 ;}
 		}
 	}
 }
 
 for(loop i=0; i<N_CLUSTERS; i++){
 	for(loop k=0; k<N_CLUSTERS; k++){
-		if(ecalclustersH3[i].eta == ecalclustersH2[k].eta && ecalclustersH3[i].phi == ecalclustersH2[k].phi){
-			if(ecalclustersH3[i].eta <= 15) { ecalclustersH3[i].energy = 0 ; }
-		else {ecalclustersH2[k].energy = 0 ;}
+		if(ECALClustersH3[i].eta == ECALClustersH2[k].eta && ECALClustersH3[i].phi == ECALClustersH2[k].phi){
+			if(ECALClustersH3[i].eta <= 15) { ECALClustersH3[i].energy = 0 ; }
+		else {ECALClustersH2[k].energy = 0 ;}
 		}
 	}
 }
@@ -489,30 +660,30 @@ for(loop i=0; i<N_CLUSTERS; i++){
 //
 for(loop i=0; i<CRYSTALS_IN_ETA23-2; i++){
 	for(loop j=0; j<CRYSTALS_IN_PHI; j++){
-		ecalcrystals[i][j] = ecalcrystalsH1[i][j] ;
+		ECALCrystals[i][j] = ECALCrystalsH1[i][j] ;
 	}
 }
 
 for(loop i=0; i<CRYSTALS_IN_ETA23-4; i++){
 	for(loop j=0; j<CRYSTALS_IN_PHI; j++){
-		ecalcrystals[CRYSTALS_IN_ETA23-2+i][j] = ecalcrystalsH2[i+2][j] ;
+		ECALCrystals[CRYSTALS_IN_ETA23-2+i][j] = ECALCrystalsH2[i+2][j] ;
 	}
 }
 
 for(loop i=0; i<CRYSTALS_IN_ETA23-2; i++){
 	for(loop j=0; j<CRYSTALS_IN_PHI; j++){
-		ecalcrystals[CRYSTALS_IN_ETA23+5+i][j] = ecalcrystalsH3[i+2][j] ;
+		ECALCrystals[CRYSTALS_IN_ETA23+5+i][j] = ECALCrystalsH3[i+2][j] ;
 	}
 }
 
-createTowers(ecalcrystals, ecaltowers) ;
+createTowers(ECALCrystals, ECALTowers) ;
 
 /*---------------------------------link 0------------------------------------*/
         
 link_out[0] = 0;
 link_out[1] = 0;
 
-processOutputLinks(ecalclustersH1, ecalclustersH2, ecalclustersH3, ecaltowers, link_out);
+processOutputLinks(ECALClustersH1, ECALClustersH2, ECALClustersH3, ECALTowers, link_out);
 
 }
 

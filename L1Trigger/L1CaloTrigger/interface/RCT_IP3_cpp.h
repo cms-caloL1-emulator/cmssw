@@ -65,7 +65,6 @@
 
 // RCT IP3 header files
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP3_h.h"
-#include "L1Trigger/L1CaloTrigger/interface/bitonicSort32_h.h"
 
 ///////////////////////////////////////////////////////////////////////////
 
@@ -96,6 +95,8 @@ for(loop i=0; i<N_TOWERS_IN_ETA; i++){
 	link_out[2].range(end1, start1) = RCTTowersPHI[3][i].getrcttower() ;
 	link_out[3].range(end, start) = RCTTowersPHI[4][i].getrcttower() ;
 	link_out[3].range(end1, start1) = RCTTowersPHI[5][i].getrcttower() ;
+	 //cout << hex <<link_out[3]<<endl;
+	 //cout<<"link out 3 ";
 }
 
 }
@@ -106,6 +107,8 @@ for(loop i=0; i<N_TOWERS_IN_ETA5*N_TOWERS_IN_PHI; i++){
     ap_uint<10> start   = i*18;
     ap_uint<10> end = start + 17;
     ECALTowersSLR3[i].fillecaltower(link_in[1].range(end, start));
+    //cout << hex << link_in[1]<<endl;
+    //cout <<"tower link 1"<<endl;
 
 
   }
@@ -113,21 +116,29 @@ for(loop i=0; i<N_TOWERS_IN_ETA5*N_TOWERS_IN_PHI; i++){
     ap_uint<10> start   = i*18;
     ap_uint<10> end = start + 17;
     ECALTowersSLR2[i].fillecaltower(link_in[2].range(end, start));
+   // cout << hex << link_in[2]<<endl;
+    //cout <<"tower link 2"<<endl;
 
   }
 for(loop i=0; i<N_TOWERS_IN_ETA5*N_TOWERS_IN_PHI; i++){
     ap_uint<10> start   = i*18;
     ap_uint<10> end = start + 17;
     ECALTowersSLR1[i].fillecaltower(link_in[3].range(end, start));
+    //cout << hex << link_in[3]<<endl;
+    //cout <<"tower link 3"<<endl;
 
   }
 for(loop i=0; i<N_TOWERS_IN_ETA2*N_TOWERS_IN_PHI; i++){
     ap_uint<10> start   = i*18;
     ap_uint<10> end = start + 17;
     ECALTowersSLR0[i].fillecaltower(link_in[4].range(end, start));
+   // cout << hex << link_in[4];
+   // cout <<"tower link 4"<<endl;
 
 
   }
+//cout<<ECALTowersSLR0[0].energy<<endl;
+  // cout<<"zero zero en";
 }
 
 inline void processInputLinks(ap_uint<576> link_in[N_INPUT_LINKS], rctecalcluster RCTECALClusters[N_CLUSTERS], rcttower RCTTowersPHI[N_TOWERS_IN_PHI][N_TOWERS_IN_ETA], bool HCALsecondhalfstarts){
@@ -147,11 +158,19 @@ for(loop i=0; i<N_CLUSTERS; i++){
     ap_uint<10> start   = i*64;
     ap_uint<10> end = start + 63;
     RCTECALClusters[i].fillrctecalcluster(link_in[0].range(end, start));
+
   }
 
 
 
 getECAL(link_in,ECALTowersSLR3, ECALTowersSLR2, ECALTowersSLR1, ECALTowersSLR0);
+
+//cout<<"ECALTowersSLR0[0].energy :";
+//cout<<ECALTowersSLR0[0].energy<<endl;
+
+
+//cout<<"eta::";
+//cout<<RCTECALClusters[0].eta<<endl;
 
 for(loop i=0; i<N_TOWERS_IN_HCAL_REGION; i++){
     ap_uint<10> start   = i*16;
@@ -195,20 +214,24 @@ RCTTowersPHI[j][i+15].uploadECAL(ECALTowersSLR0[i*6+j]) ;
 if(!HCALsecondhalfstarts){
 for(loop j=0; j<N_TOWERS_HCAL_IN_PHI; j++){
 for(loop i=0; i<N_TOWERS_HCAL_IN_ETA/2; i++){
+//    #pragma HLS UNROLL
 RCTTowersPHI[j][i].uploadHCAL(HCALTowersR0[i*4+j]) ;
 }}
 
 for(loop j=0; j<N_TOWERS_HCAL_IN_PHI; j++){
 for(loop i=0; i<N_TOWERS_HCAL_IN_ETA/2; i++){
+//    #pragma HLS UNROLL
 RCTTowersPHI[j][i+8].uploadHCAL(HCALTowersR1[i*4+j]) ;
 }}
 
 for(loop j=0; j<N_TOWERS_HCAL_IN_PHI/2; j++){
 for(loop i=0; i<N_TOWERS_HCAL_IN_ETA/2; i++){
+//    #pragma HLS UNROLL
 RCTTowersPHI[j+4][i].uploadHCAL(HCALTowersR2[i*4+j]) ;
 }}
 for(loop j=0; j<N_TOWERS_HCAL_IN_PHI/2; j++){
 for(loop i=0; i<N_TOWERS_HCAL_IN_ETA/2; i++){
+//    #pragma HLS UNROLL
 RCTTowersPHI[j+4][i+8].uploadHCAL(HCALTowersR3[i*4+j]) ;
 }}
 
@@ -216,24 +239,29 @@ RCTTowersPHI[j+4][i+8].uploadHCAL(HCALTowersR3[i*4+j]) ;
 else{
 for(loop j=0; j<N_TOWERS_HCAL_IN_PHI/2; j++){
 for(loop i=0; i<N_TOWERS_HCAL_IN_ETA/2; i++){
+//    #pragma HLS UNROLL
 RCTTowersPHI[j][i].uploadHCAL(HCALTowersR2[i*4+j+2]);
 }}
 for(loop j=0; j<N_TOWERS_HCAL_IN_PHI/2; j++){
 for(loop i=0; i<N_TOWERS_HCAL_IN_ETA/2; i++){
+//    #pragma HLS UNROLL
 RCTTowersPHI[j][i+8].uploadHCAL(HCALTowersR3[i*4+j+2]);
 }}
 for(loop j=0; j<N_TOWERS_HCAL_IN_PHI; j++){
 for(loop i=0; i<N_TOWERS_HCAL_IN_ETA/2; i++){
+//    #pragma HLS UNROLL
 RCTTowersPHI[j+2][i].uploadHCAL(HCALTowersR0[i*4+j]) ;
 }}
 for(loop j=0; j<N_TOWERS_HCAL_IN_PHI; j++){
 for(loop i=0; i<N_TOWERS_HCAL_IN_ETA/2; i++){
+//    #pragma HLS UNROLL
 RCTTowersPHI[j+2][i+8].uploadHCAL(HCALTowersR1[i*4+j]) ;
 }}
 }
 }
 
 inline void algo_top(ap_uint<576> link_in[N_INPUT_LINKS], ap_uint<576> link_out[N_OUTPUT_LINKS]){
+//#pragma HLS latency min=145
 
 rctecalcluster RCTECALClusters[N_CLUSTERS] ;
 
@@ -245,6 +273,10 @@ rcttower RCTTowersPHI[N_TOWERS_IN_PHI][N_TOWERS_IN_ETA];
 bool HCALsecondhalfstarts = 0 ;
 
 processInputLinks(link_in, RCTECALClusters, RCTTowersPHI, HCALsecondhalfstarts) ;
+//out<< RCTTowersPHI[0][0].energy<<endl;
+//cout<<"RCTTowersPHI[0][0]";
+//cout<< RCTTowersPHI[5][0].energy<<endl;
+//cout<<"RCTTowersPHI[5][0]";
 /*---------------------------------link 0------------------------------------*/
         
 link_out[0] = 0;
@@ -256,7 +288,9 @@ processOutLinks(RCTECALClusters, RCTTowersPHI, link_out);
 
 }
 
+// Copy of algo_top, but with HCALsecondhalfstarts = 1 (to be called on certain RCT cards, depending on orientation of HCAL links)
 inline void algo_top_HCALsecondhalfstarts(ap_uint<576> link_in[N_INPUT_LINKS], ap_uint<576> link_out[N_OUTPUT_LINKS]){
+//#pragma HLS latency min=145
 
 rctecalcluster RCTECALClusters[N_CLUSTERS] ;
 
@@ -268,6 +302,10 @@ rcttower RCTTowersPHI[N_TOWERS_IN_PHI][N_TOWERS_IN_ETA];
 bool HCALsecondhalfstarts = 1 ;
 
 processInputLinks(link_in, RCTECALClusters, RCTTowersPHI, HCALsecondhalfstarts) ;
+//out<< RCTTowersPHI[0][0].energy<<endl;
+//cout<<"RCTTowersPHI[0][0]";
+//cout<< RCTTowersPHI[5][0].energy<<endl;
+//cout<<"RCTTowersPHI[5][0]";
 /*---------------------------------link 0------------------------------------*/
         
 link_out[0] = 0;
@@ -279,6 +317,6 @@ processOutLinks(RCTECALClusters, RCTTowersPHI, link_out);
 
 }
 
-} // namespace p2rctIP22
+} // namespace p2rctIP3
 
 #endif

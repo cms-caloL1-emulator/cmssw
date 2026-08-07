@@ -28,10 +28,13 @@ static constexpr int N_CLUSTERS = 3;
 static constexpr int SEED_THRESHOLD = 2;
 //static constexpr int SEED_THRESHOLD = 1023; // dont do any clustering
 
+using namespace std;
+
 typedef ap_uint<6> loop;
 
 class ecalcrystalmask{
     public:
+//    ap_uint<10> energy;
     ap_uint<1> energy;
 
     ecalcrystalmask(){
@@ -39,10 +42,12 @@ class ecalcrystalmask{
     }
 
     ecalcrystalmask(const ecalcrystalmask& rhs){
+//    cout << " copy " << endl ;
     energy=rhs.energy;
     }
 
     ecalcrystalmask& operator=(const ecalcrystalmask& rhs){
+//    cout << " assign " << endl ;
     this->energy=rhs.energy;
         return *this;
     }
@@ -66,11 +71,11 @@ class ecalcrystal{
 
     inline ap_uint<16> getecalcrystal(void){
     	ap_uint<16> data;
-      data  = 
-      ((ap_uint<16>)energy & 0x3FF) |
-      (((ap_uint<16>)timing)<<10 & 0x1F) |
-      (((ap_uint<16>)spike)<<15 & 0x1) ;
-      return data ;
+        data  = 
+	((ap_uint<16>)energy & 0x3FF) |
+	(((ap_uint<16>)timing)<<10 & 0x1F) |
+	(((ap_uint<16>)spike)<<15 & 0x1) ;
+	return data ;
     }
 
     ecalcrystal(ap_uint<16> i){
@@ -88,6 +93,7 @@ class ecalcrystal{
     }
 
     ecalcrystal(const ecalcrystal& rhs){
+//    cout << " copy " << endl ;
     energy=rhs.energy;
     timing=rhs.timing;
     spike=rhs.spike;
@@ -96,6 +102,7 @@ class ecalcrystal{
     }
 
     ecalcrystal& operator=(const ecalcrystal& rhs){
+//    cout << " assign " << endl ;
     this->energy=rhs.energy;
     this->timing=rhs.timing;
     this->spike=rhs.spike;
@@ -168,7 +175,6 @@ class ecalcluster{
       (((ap_uint<64>) satur)       << 58) |
       (((ap_uint<64>) brems)       << 59) |
       (((ap_uint<64>) spare)       << 61);
-    
     return data ;
     }
 
@@ -185,7 +191,7 @@ class ecalcluster{
     	this->brems = i.range(60, 59);
     }
 
-    ecalcluster(ap_uint<10> seedEnergy, ap_uint<12> energy, ap_uint<5> eta, ap_uint<5> phi, ap_uint<10> et5x5, ap_uint<10> et2x5, ap_uint<5> timing, ap_uint<1> spike, ap_uint<1> satur, ap_uint<2> brems, ap_uint<3> spare){
+ ecalcluster(ap_uint<10> seedEnergy, ap_uint<12> energy, ap_uint<5> eta, ap_uint<5> phi, ap_uint<10> et5x5, ap_uint<10> et2x5, ap_uint<5> timing, ap_uint<1> spike, ap_uint<1> satur, ap_uint<2> brems, ap_uint<3> spare){
         data = (seedEnergy) | 
       (((ap_uint<64>) energy)  << 10) | 
       (((ap_uint<64>) eta)  << 22) | 
@@ -199,10 +205,19 @@ class ecalcluster{
       (((ap_uint<64>) spare)       << 61);
     }
 
+//    seedEnergy() {return seedEnergy;}
     inline ap_uint<12> Energy(void) {return energy;}
     inline ap_uint<5> Eta(void) {return eta;}
     inline ap_uint<5> Phi(void) {return phi;}
+//    et5x5() {return et5x5;}
+//    et2x5() {return et2x5;}
+//    timing() {return timing;}
+//    spike() {return spike;}
+//    satur() {return satur;}
+//    brems() {return brems;}
     inline ap_uint<64> Data(void) {return data;}
+	
+//    operator uint64_t() {return (ap_uint<64>) data;}
 
 
 };

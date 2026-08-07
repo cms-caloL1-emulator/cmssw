@@ -1,6 +1,6 @@
 //------------------------------------
 // More IP22 Logic for Phase2L1CaloL1RCTEmulator.cc
-// (based heavily on algo_top.cpp in RCT firmware repo)
+// (based heavily on IP22.cpp in RCT firmware repo)
 //------------------------------------
 #ifndef L1Trigger_L1CaloTrigger_RCT_IP22_cpp
 #define L1Trigger_L1CaloTrigger_RCT_IP22_cpp
@@ -65,7 +65,7 @@
 
 // RCT IP22 header files
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP22_h.h"
-#include "L1Trigger/L1CaloTrigger/interface/bitonicSort32_h.h"
+#include "L1Trigger/L1CaloTrigger/interface/bubl_sorter_h.h"
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -138,7 +138,7 @@ inline void putbackintower2x6(ecalcluster ECALCluster, ecaltower ECALTowers[TOWE
 
    for (loop i = 0; i < TOWERS_IN_ETA2 * TOWERS_IN_PHI; i++) {
       ap_uint < 12 > sum = ECALTowers[i].energy + ECALCluster.energy;
-      if (id == i * 5) {
+      if (id == i) {
          ECALTowers[i].energy = sum;
       }
    }
@@ -150,13 +150,15 @@ inline void putbackintower(ecalcluster ECALCluster, ecaltower ECALTowers[TOWERS_
 
    for (loop i = 0; i < TOWERS_IN_ETA5 * TOWERS_IN_PHI; i++) {
       ap_uint < 12 > sum = ECALTowers[i].energy + ECALCluster.energy;
-      if (id == i * 5) {
+      if (id == i) {
          ECALTowers[i].energy = sum;
       }
    }
 
 }
-
+inline void dummy_pass_through(ap_uint<576> in, ap_uint<576> &out) {
+out = in;
+}
 inline void algo_top(ap_uint < 576 > link_in[N_INPUT_LINKS], ap_uint < 576 > link_out[N_OUTPUT_LINKS]) {
 
    ecalcluster ECALClustersRejected[27];
@@ -204,7 +206,7 @@ inline void algo_top(ap_uint < 576 > link_in[N_INPUT_LINKS], ap_uint < 576 > lin
    link_out[4] = 0;
 
    processOutLinks(ECALTowersSLR0, ECALTowersSLR1, ECALTowersSLR2, ECALTowersSLR3, link_out);
-   link_out[0]=link_in[0];
+   dummy_pass_through(link_in[0], link_out[0]);
 
 }
 
