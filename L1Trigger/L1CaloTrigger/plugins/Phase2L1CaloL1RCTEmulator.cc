@@ -60,22 +60,22 @@
 // RCT CMSSW - firmware interface
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IO.h"
 
-// RCT IP1 header files and data formats
+// RCT header files and data formats
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP1_5x6_h.h"
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP1_5x6_cpp.h"
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP1_2x6_h.h"
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP1_2x6_cpp.h"
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP21_h.h"
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP21_cpp.h"
-#include "L1Trigger/L1CaloTrigger/interface/bitonicSort32_h.h"
-#include "L1Trigger/L1CaloTrigger/interface/bitonicSort32_cpp.h"
+#include "L1Trigger/L1CaloTrigger/interface/bubl_sorter_h.h"
+#include "L1Trigger/L1CaloTrigger/interface/bubl_sorter_cpp.h"
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP22_h.h"
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP22_cpp.h"
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP3_h.h"
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP3_cpp.h"
 #include "DataFormats/L1TCalorimeterPhase2/interface/RCT_output.h"
 
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 // Declare the Phase2L1CaloL1RCTEmulator class and its methods
 

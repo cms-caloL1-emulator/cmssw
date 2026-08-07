@@ -100,7 +100,7 @@ inline void processOutLinks(ecalcluster ECALClustersSorted[N_CLUSTERS],
    for (loop i = 0; i < N_CLUSTERS_OUT; i++) {
       start = i * 64;
       end = start + 63;
-      cout<<RCTECALClusters[i].energy<<endl; //<<-------------------------------------------------------------
+      //cout<<RCTECALClusters[i].energy<<endl; //<<-------------------------------------------------------------
       link_out[0].range(end, start) = RCTECALClusters[i].getrctecalcluster();
    }
 
