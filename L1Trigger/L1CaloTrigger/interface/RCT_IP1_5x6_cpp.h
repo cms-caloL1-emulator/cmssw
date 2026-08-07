@@ -573,7 +573,7 @@ for(loop i=0; i<CRYSTALS_IN_ETA; i++){
 }
 }
 
-inline oid algo_top(ap_uint<576> link_in[N_INPUT_LINKS], ap_uint<576> link_out[N_OUTPUT_LINKS]){
+inline void algo_top(ap_uint<576> link_in[N_INPUT_LINKS], ap_uint<576> link_out[N_OUTPUT_LINKS]){
 
 ecalcluster ECALClusters[N_CLUSTERS] ;
 ecalcluster ECALClustersH1[N_CLUSTERS] ;
