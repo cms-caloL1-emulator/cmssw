@@ -65,7 +65,7 @@
 
 // RCT IP22 header files
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP22_h.h"
-#include "L1Trigger/L1CaloTrigger/interface/bitonicSort32_h.h"
+#include "L1Trigger/L1CaloTrigger/interface/bubl_sorter_h.h"
 
 //////////////////////////////////////////////////////////////////////////
 
