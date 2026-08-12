@@ -1,0 +1,8 @@
+<!--
+  Description:
+    Build the deterministic standalone IP2 top-level firmware test.
+-->
+<bin file="test_algo_topIP2gct.cpp" name="testAlgoTopIP2gct">
+  <use name="L1Trigger/L1CaloTrigger"/>
+  <use name="hls"/>
+</bin>
