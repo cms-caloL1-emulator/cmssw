@@ -207,8 +207,8 @@ void Phase2L1CaloL1HFEmulator::produce(edm::Event& iEvent, const edm::EventSetup
   // Run algo_top (firmware code)
   ap_uint<576> link_out_ip1_pos[N_OUTPUT_LINKS_CL1 + N_OUTPUT_LINKS_MIX];
   ap_uint<576> link_out_ip1_neg[N_OUTPUT_LINKS_CL1 + N_OUTPUT_LINKS_MIX];
-  algo_topIP1(link_in_pos, link_out_ip1_pos);
-  algo_topIP1(link_in_neg, link_out_ip1_neg);
+  hf_ip1::algo_topIP1(link_in_pos, link_out_ip1_pos);
+  hf_ip1::algo_topIP1(link_in_neg, link_out_ip1_neg);
 
   ap_uint<576> link_in_ip2_pos[N_HF_REGIONS];
   ap_uint<576> link_out_ip2_pos[N_HF_REGIONS];

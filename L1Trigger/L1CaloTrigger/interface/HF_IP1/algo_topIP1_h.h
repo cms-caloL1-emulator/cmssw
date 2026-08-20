@@ -444,6 +444,9 @@ class stower{
 
 };
 
+namespace hf_ip1 {
+
+
 class PFcluster{
     public:
     ap_uint<12> energy;
@@ -507,6 +510,8 @@ class PFcluster{
 
 };
 
+
+
 class hfregion{
 public:
 hftower hftowers[N_HF_TOWERS_REGION_ETA+4][N_HF_TOWERS_REGION_PHI+4];
@@ -534,6 +539,6 @@ void createJets(stower stowers[STOWERS_ETA_R][STOWERS_PHI_R+4], jet jets[5]) ;
 void createTaus(stower stowers[STOWERS_ETA_R][STOWERS_PHI_R+4], tau taus[5]) ;
 
 void algo_topIP1(ap_uint<576> link_in[N_INPUT_LINKS], ap_uint<576> link_out[N_OUTPUT_LINKS_CL1+N_OUTPUT_LINKS_MIX]);
-
+}
 #endif
 

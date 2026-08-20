@@ -32,6 +32,8 @@ void getseedpositionJet(stower stowers[STOWERS_ETA_R+4][STOWERS_PHI_R+4], stower
 		}}
 }
 
+namespace hf_ip1 {
+
 void getclusterPF(hftower towers[N_HF_TOWERS_REGION_ETA+4][N_HF_TOWERS_REGION_PHI+4], hftower Seed, PFcluster &output) {
 
 
@@ -88,6 +90,7 @@ void getPFClusters(hftower towers[N_HF_TOWERS_REGION_ETA+4][N_HF_TOWERS_REGION_P
 		zerrotowersPF(towers, Seed);
 	}
 }
+
 
 
 void createSums(stregion region[N_HF_REGIONS] , sums& sum) {
@@ -219,4 +222,5 @@ void createJets(stower stowers[STOWERS_ETA_R][STOWERS_PHI_R+4], jet jets[5]) {
 		zerrostowersJet(stowersExtended, Seed) ;
 	}
 }
-	
+
+}

@@ -1,7 +1,9 @@
 #include "algo_topIP1_h.h"
 #include "bubl_sorter_h.h"
 
-void processInputLinks(ap_uint<576> link_in[N_INPUT_LINKS], hfregion HFRegion[N_HF_REGIONS]){
+namespace hf_ip1 {
+
+	void processInputLinks(ap_uint<576> link_in[N_INPUT_LINKS], hfregion HFRegion[N_HF_REGIONS]){
 
 // -2 because last 2 are 4x towers 
 // we have initally 10 A and 10 B towers that we need to split in 2 each
@@ -176,6 +178,8 @@ void processInputLinks(ap_uint<576> link_in[N_INPUT_LINKS], hfregion HFRegion[N_
 
 }
 
+
+
 void calculateST(hfregion HFRegionTMP, stower stowers[2][2]){
 
 	for(loop i=0; i<2; i++){
@@ -206,6 +210,8 @@ void calculateST(hfregion HFRegionTMP, stower stowers[2][2]){
 	}}
 
 }
+
+
 
 void calculateSTregions(stregion STRegion[24], stower HFSTowers1[STOWERS_ETA_R][STOWERS_PHI_R+4], stower  HFSTowers2[STOWERS_ETA_R][STOWERS_PHI_R+4], stower HFSTowers3[STOWERS_ETA_R][STOWERS_PHI_R+4]){
 
@@ -261,6 +267,8 @@ HFSTowers3[3][11] = STRegion[12].stowers[1][1] ;
 
 }
 
+
+
 void fillOutputLink(PFcluster pfclusters[16], ap_uint<576> &linkOut){
 	linkOut = 0;
 
@@ -274,7 +282,7 @@ void fillOutputLink(PFcluster pfclusters[16], ap_uint<576> &linkOut){
 }
 
 
-void copy_to_output(ap_uint<576> link_tmp[N_OUTPUT_LINKS_CL1+N_OUTPUT_LINKS_MIX], ap_uint<576> link_out_copy[N_OUTPUT_LINKS_CL1+N_OUTPUT_LINKS_MIX]){
+inline void copy_to_output(ap_uint<576> link_tmp[N_OUTPUT_LINKS_CL1+N_OUTPUT_LINKS_MIX], ap_uint<576> link_out_copy[N_OUTPUT_LINKS_CL1+N_OUTPUT_LINKS_MIX]){
 	for(loop i=0; i<N_OUTPUT_LINKS_CL1+N_OUTPUT_LINKS_MIX; i++)
 		link_out_copy[i]=link_tmp[i];
 	}
@@ -455,4 +463,5 @@ void algo_topIP1(ap_uint<576> link_in[N_INPUT_LINKS], ap_uint<576> link_out[N_OU
 //}
 //#endif
 
+}
 }
