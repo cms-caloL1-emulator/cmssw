@@ -75,6 +75,11 @@
 #include "L1Trigger/L1CaloTrigger/interface/RCT_IP3_cpp.h"
 #include "DataFormats/L1TCalorimeterPhase2/interface/RCT_output.h"
 
+
+// Adding the RCT IO Dump utlity header file
+#include "L1Trigger/L1CaloTrigger/interface/RCT_IO_DumpUtils.h"
+using namespace rctdump;
+
 ///////////////////////////////////////////////////////////////////////////////
 
 // Declare the Phase2L1CaloL1RCTEmulator class and its methods
@@ -91,6 +96,8 @@ private:
 
   edm::EDGetTokenT<EcalEBTrigPrimDigiCollection> ecalTPEBToken_;
   edm::EDGetTokenT<edm::SortedCollection<HcalTriggerPrimitiveDigi>> hcalTPToken_;
+  edm::EDGetTokenT<std::vector<reco::GenParticle>> genParticleToken_; // For Gen Particles
+
   edm::ESGetToken<CaloTPGTranscoder, CaloTPGRecord> decoderTag_;
 
   edm::ESGetToken<CaloGeometry, CaloGeometryRecord> caloGeometryTag_;
@@ -107,6 +114,7 @@ private:
 Phase2L1CaloL1RCTEmulator::Phase2L1CaloL1RCTEmulator(const edm::ParameterSet& iConfig)
     : ecalTPEBToken_(consumes<EcalEBTrigPrimDigiCollection>(iConfig.getParameter<edm::InputTag>("ecalTPEB"))),
       hcalTPToken_(consumes<edm::SortedCollection<HcalTriggerPrimitiveDigi>>(iConfig.getParameter<edm::InputTag>("hcalTP"))),
+      genParticleToken_(consumes<std::vector<reco::GenParticle>>(iConfig.getParameter<edm::InputTag>("genParticles"))),
       decoderTag_(esConsumes<CaloTPGTranscoder, CaloTPGRecord>(edm::ESInputTag("", ""))),
       caloGeometryTag_(esConsumes<CaloGeometry, CaloGeometryRecord>(edm::ESInputTag("", ""))),
       hbTopologyTag_(esConsumes<HcalTopology, HcalRecNumberingRecord>(edm::ESInputTag("", ""))) {
@@ -126,6 +134,9 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
   std::unique_ptr<l1tp2::rctOutputLinkCollection> link_out3(make_unique<l1tp2::rctOutputLinkCollection>());
 
   std::cout << "Starting the RCT Emulator..." << std::endl;
+
+  const unsigned long long eventId = iEvent.id().event();
+
 
   // Detector geometry
   const auto& caloGeometry = iSetup.getData(caloGeometryTag_);
@@ -159,9 +170,9 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
     {
       // Et is 10 bit, by keeping the ADC saturation Et at 120 GeV it means that you have to multiply by 0.125 (input LSB)
       float et = hit.encodedEt() * 0.125;
-      if (et < 0.5) {
-        continue;  // Reject hits with < 500 MeV ET
-      }
+      // if (et < 0.5) {
+      //   continue;  // Reject hits with < 500 MeV ET
+      // }
 
       // std::cout << "pcalohit energy: " << et << std::endl;
 
@@ -291,8 +302,56 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
   // std::cout << "Card 0, link (0,0): " << (bitset<576>)cardsECAL[0].getLink(0, 0).Data() << std::endl;
   // std::cout << "Card 23, link (16,5): " << (bitset<576>)cardsECAL[23].getLink(16, 5).Data() << std::endl;
 
+  // Dumping the propagated GEN-electron information
+  {
+    const std::string eventDir =
+        "rct_IO/event_" + std::to_string(eventId);
+
+    ensureDir(eventDir);
+
+    std::ofstream genCSV(
+        eventDir + "/event_" +
+        std::to_string(eventId) +
+        "_gen_electrons.csv"
+    );
+
+    if (!genCSV.is_open()) {
+      throw cms::Exception("Phase2L1CaloL1RCTEmulator")
+          << "Could not open GEN CSV in " << eventDir;
+    }
+
+    dumpGenElectronsCSV(
+        genCSV,
+        iEvent,
+        genParticleToken_
+    );
+  } 
+
   // Loop through cards
   for(int cc=0; cc < p2rctIO::N_CARDS; cc++) {
+    DumpDirs dirs = makeDumpDirs(cc, eventId);
+    ensureDumpDirs(dirs);
+
+    const std::string prefix =
+        "card_" + std::to_string(cc) + "_";
+
+    {
+      std::ofstream crystalCSV(
+          dirs.crystals + "/" +
+          prefix + "input_crystals.csv"
+      );
+
+      if (!crystalCSV.is_open()) {
+        throw cms::Exception("Phase2L1CaloL1RCTEmulator")
+            << "Could not open crystal CSV for card " << cc;
+      }
+
+      dumpCardCrystalCSV(
+          crystalCSV,
+          cc,
+          crystalEnergies[cc]
+      );
+    }
     //////////////////////////// IP1 ////////////////////////////
 
     // Separate out the hits into the 5x6 and 2x6 areas
@@ -318,6 +377,44 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
     p2rctIP1_5x6::algo_top(link_in_SLR1, link_outIP1_SLR1);
     p2rctIP1_2x6::algo_top(link_in_SLR0, link_outIP1_SLR0);
 
+    // Dumping all the I/O related to IP1
+    writeRawLinksCSVFileInDir(dirs.inputIP1, cc, eventId, "IP1_SLR3_5x6", "input", link_in_SLR3, static_cast<int>(link_in_SLR3_vec.size()));
+    writeRawLinksCSVFileInDir(dirs.inputIP1, cc, eventId, "IP1_SLR2_5x6", "input", link_in_SLR2, static_cast<int>(link_in_SLR2_vec.size()));
+    writeRawLinksCSVFileInDir(dirs.inputIP1, cc, eventId, "IP1_SLR1_5x6", "input", link_in_SLR1, static_cast<int>(link_in_SLR1_vec.size()));
+    writeRawLinksCSVFileInDir(dirs.inputIP1, cc, eventId, "IP1_SLR0_2x6", "input", link_in_SLR0, static_cast<int>(link_in_SLR0_vec.size()));
+
+    writeRawLinksCSVFileInDir(dirs.outputIP1, cc, eventId, "IP1_SLR3_5x6", "output", link_outIP1_SLR3, p2rctIP1_5x6::N_OUTPUT_LINKS);
+    writeRawLinksCSVFileInDir(dirs.outputIP1, cc, eventId, "IP1_SLR2_5x6", "output", link_outIP1_SLR2, p2rctIP1_5x6::N_OUTPUT_LINKS);
+    writeRawLinksCSVFileInDir(dirs.outputIP1, cc, eventId, "IP1_SLR1_5x6", "output", link_outIP1_SLR1, p2rctIP1_5x6::N_OUTPUT_LINKS);
+    writeRawLinksCSVFileInDir(dirs.outputIP1, cc, eventId, "IP1_SLR0_2x6", "output", link_outIP1_SLR0, p2rctIP1_2x6::N_OUTPUT_LINKS);
+    
+    // Decoded IP1 outputs.
+    {
+      std::ofstream csv(dirs.decodedIP1 + "/" + prefix + "SLR3_emu_decoded.csv");
+      writeCSVHeader(csv);
+      dumpDecodedIP1CSV(csv,"SLR3", "5x6",9,30, link_outIP1_SLR3);
+    }
+
+    {
+      std::ofstream csv(dirs.decodedIP1 + "/" + prefix + "SLR2_emu_decoded.csv");
+      writeCSVHeader(csv);
+      dumpDecodedIP1CSV(csv,"SLR2","5x6",9,30,link_outIP1_SLR2);
+    }
+
+    {
+      std::ofstream csv(dirs.decodedIP1 + "/" + prefix + "SLR1_emu_decoded.csv");
+      writeCSVHeader(csv);
+      dumpDecodedIP1CSV(csv,"SLR1","5x6",9,30,link_outIP1_SLR1);
+    }
+
+    {
+      std::ofstream csv(dirs.decodedIP1 + "/" + prefix + "SLR0_emu_decoded.csv");
+
+      writeCSVHeader(csv);
+      dumpDecodedIP1CSV(csv,"SLR0","2x6",3,12,link_outIP1_SLR0);
+    }
+
+
     // Reorganize links to be input links for IP21
     ap_uint<576> link_inIP21[p2rctIP1_5x6::N_OUTPUT_LINKS*3 + p2rctIP1_2x6::N_OUTPUT_LINKS];
     for(int i=0; i<2; i++) {
@@ -333,11 +430,108 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
     // Apply IP21 algo_top (using ss vars from firmware IP21 test bench)
     p2rctIP21::algo_top(link_inIP21, link_outIP21,126, 125, 125, 124, 123, 123, 122, 122, 121, 121, 121, 121, 121, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120, 120);
 
+    // I/O for IP21
+    const std::vector<std::string> ip21Sources = makeIP21InputSources();
+
+    writeRawLinksCSVFileInDir(dirs.inputIP21, cc, eventId, "IP21", "input", link_inIP21, p2rctIP21::N_INPUT_LINKS, &ip21Sources);
+    writeRawLinksCSVFileInDir(dirs.outputIP21, cc, eventId, "IP21", "output", link_outIP21,p2rctIP21::N_OUTPUT_LINKS);
+    // IP21 input ECAL clusters: SLR3, SLR2, and SLR1.
+    {
+      std::ofstream csv(dirs.decodedIP21 + "/" + prefix + "IP21_input_clusters_decoded.csv");
+      dumpDecodedEcalClusterLinksCSV(csv, cc, eventId, "IP21", "input", link_inIP21, {0, 1, 2}, 9);
+    }
+    // IP21 input ECAL clusters: SLR0.
+    {
+      std::ofstream csv(dirs.decodedIP21 + "/" +prefix + "IP21_input_clusters_SLR0_decoded.csv");
+      dumpDecodedEcalClusterLinksCSV(csv, cc, eventId, "IP21", "input", link_inIP21, {3}, 3);
+    }
+    // IP21 input towers: SLR3, SLR2, and SLR1.
+    {
+      std::ofstream csv(dirs.decodedIP21 + "/" + prefix + "IP21_input_towers_5x6_decoded.csv");
+      dumpDecodedTowerLinksCSV(csv, cc, eventId, "IP21", "input", link_inIP21, {4, 5, 6}, 30);
+    }
+    // IP21 input towers: SLR0.
+    {
+      std::ofstream csv(dirs.decodedIP21 + "/" + prefix + "IP21_input_towers_SLR0_decoded.csv");
+      dumpDecodedTowerLinksCSV(csv, cc, eventId, "IP21", "input", link_inIP21, {7}, 12);
+    }
+    // IP21 output cluster link.
+    {
+      std::ofstream csv(dirs.decodedIP21 + "/" + prefix + "IP21_output_rct_clusters_decoded.csv");
+      dumpDecodedRctClusterLinkCSV(csv, cc, eventId, "IP21", "output", link_outIP21, 0, p2rctIP21::N_CLUSTERS_OUT);
+    }
+    {
+      std::ofstream csv(dirs.decodedIP21 + "/" + prefix + "IP21_output_rejected_clusters_decoded.csv");
+      dumpDecodedEcalClusterLinksCSV(csv, cc, eventId, "IP21", "output", link_outIP21, {1, 2, 3}, 9);
+    }
+
+    // IP21 output links 4-6:
+    // ECAL tower links corresponding to the three 5x6 SLRs.
+    {
+      std::ofstream csv(dirs.decodedIP21 + "/" + prefix + "IP21_output_towers_5x6_decoded.csv");
+      dumpDecodedTowerLinksCSV(csv, cc, eventId, "IP21", "output", link_outIP21, {4, 5, 6}, 30);
+    }
+
+    // IP21 output link 7:
+    // ECAL towers from the SLR0 2x6 region.
+    {
+      std::ofstream csv(dirs.decodedIP21 + "/" + prefix + "IP21_output_towers_SLR0_decoded.csv");
+      dumpDecodedTowerLinksCSV(csv, cc, eventId, "IP21", "output", link_outIP21,{7}, 12);
+    }
+
+
     // Initialize output links for IP22
     ap_uint<576> link_outIP22[p2rctIP22::N_OUTPUT_LINKS];
 
     // Apply IP22 algo_top (link_outIP21 = link_inIP22)
     p2rctIP22::algo_top(link_outIP21, link_outIP22);
+
+    writeRawLinksCSVFileInDir(dirs.inputIP22, cc, eventId, "IP22", "input", link_outIP21, p2rctIP22::N_INPUT_LINKS);
+    writeRawLinksCSVFileInDir(dirs.outputIP22, cc, eventId, "IP22", "output", link_outIP22, p2rctIP22::N_OUTPUT_LINKS);
+
+    {
+      std::ofstream csv(dirs.decodedIP22 + "/" + prefix + "IP22_input_rct_clusters_decoded.csv");
+      dumpDecodedRctClusterLinkCSV(csv, cc, eventId, "IP22", "input", link_outIP21, 0, p2rctIP21::N_CLUSTERS_OUT);
+    }
+    // Decode the RCT cluster output carried by IP22 output link 0.
+    {
+      std::ofstream csv(dirs.decodedIP22 + "/" + prefix + "IP22_output_rct_clusters_decoded.csv");
+      dumpDecodedRctClusterLinkCSV(csv, cc, eventId, "IP22", "output", link_outIP22, 0, p2rctIP22::N_CLUSTERS_OUT);
+    }
+
+    // IP22 input links 1-3:
+    // rejected ECAL clusters from IP21.
+    {
+      std::ofstream csv(dirs.decodedIP22 + "/" + prefix + "IP22_input_rejected_clusters_decoded.csv");
+      dumpDecodedEcalClusterLinksCSV(csv, cc, eventId, "IP22", "input", link_outIP21, {1, 2, 3}, 9);
+    }
+
+    // IP22 input links 4-6:
+    // ECAL tower links from the three 5x6 SLRs.
+    {
+      std::ofstream csv(dirs.decodedIP22 + "/" + prefix + "IP22_input_towers_5x6_decoded.csv");
+      dumpDecodedTowerLinksCSV(csv, cc, eventId, "IP22", "input", link_outIP21, {4, 5, 6}, 30);
+    }
+
+    // IP22 input link 7:
+    // ECAL towers from SLR0 2x6.
+    {
+      std::ofstream csv(dirs.decodedIP22 + "/" + prefix + "IP22_input_towers_SLR0_decoded.csv");
+      dumpDecodedTowerLinksCSV(csv, cc, eventId, "IP22", "input", link_outIP21, {7}, 12);
+    }
+    // IP22 output link 0:
+    // IP22 output links 1-3:
+    // ECAL towers sent to IP3.
+    {
+      std::ofstream csv(dirs.decodedIP22 + "/" + prefix + "IP22_output_towers_5x6_decoded.csv");
+      dumpDecodedTowerLinksCSV(csv, cc, eventId, "IP22", "output", link_outIP22, {1, 2, 3}, 30);
+    }
+    // IP22 output link 4:
+    // ECAL towers from the SLR0 2x6 region.
+    {
+      std::ofstream csv(dirs.decodedIP22 + "/" + prefix + "IP22_output_towers_SLR0_decoded.csv");
+      dumpDecodedTowerLinksCSV(csv, cc, eventId, "IP22", "output", link_outIP22, {4}, 12);
+    }
 
     // Append HCAL links to link_outIP22 to form link_inIP3
     ap_uint<576> link_inIP3[p2rctIP3::N_INPUT_LINKS];
@@ -389,12 +583,47 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
     // Initialize output links for IP3
     ap_uint<576> link_outIP3[p2rctIP3::N_OUTPUT_LINKS];
 
+
+    // I/O for IP3
+    writeRawLinksCSVFileInDir(dirs.inputIP3, cc, eventId, "IP3", "input", link_inIP3, p2rctIP3::N_INPUT_LINKS);
+    
+    // Decode the ECAL/RCT cluster input from IP22.
+    {
+      std::ofstream csv(dirs.decodedIP3 + "/" + prefix + "IP3_input_rct_clusters_decoded.csv");
+      dumpDecodedRctClusterLinkCSV(csv, cc, eventId, "IP3", "input", link_inIP3, 0, p2rctIP3::N_CLUSTERS);
+    }
+    // Decode HCAL links 5–8.
+    {
+      std::ofstream csv(dirs.decodedIP3 + "/" + prefix + "IP3_input_hcal_towers_decoded.csv");
+      dumpDecodedHcalTowerLinksCSV(csv, cc, eventId, "IP3", "input", link_inIP3, {5, 6, 7, 8}, p2rctIO::TOWERS_IN_REGION_ETA * p2rctIO::TOWERS_IN_REGION_PHI);
+    }
+
+    // IP3 input links 1-3:
+    // ECAL towers from the three 5x6 SLR regions.
+    {
+      std::ofstream csv(dirs.decodedIP3 + "/" + prefix + "IP3_input_ecal_towers_5x6_decoded.csv");
+      dumpDecodedTowerLinksCSV(csv, cc, eventId, "IP3", "input", link_inIP3, {1, 2, 3}, 30);
+    }
+
+    // IP3 input link 4:
+    // ECAL towers from SLR0 2x6.
+    {
+      std::ofstream csv(dirs.decodedIP3 + "/" + prefix + "IP3_input_ecal_towers_SLR0_decoded.csv");
+      dumpDecodedTowerLinksCSV(csv, cc, eventId, "IP3", "input", link_inIP3, {4}, 12);
+    }
+
     // Apply IP3 algo_top, or algo_top_HCALsecondhalfstarts
     if (!secondhalfstarts) {
       p2rctIP3::algo_top(link_inIP3, link_outIP3);
     }
     else {
       p2rctIP3::algo_top_HCALsecondhalfstarts(link_inIP3, link_outIP3);
+    }
+
+    writeRawLinksCSVFileInDir(dirs.outputIP3, cc, eventId, "IP3", "output", link_outIP3, p2rctIP3::N_OUTPUT_LINKS);
+    {
+      std::ofstream csv(dirs.decodedIP3 + "/" + prefix + "IP3_output_decoded.csv");
+      dumpDecodedIP3OutputCSV(csv, cc, eventId, link_outIP3);
     }
 
     // // Print outputs for comparison purposes
@@ -434,6 +663,8 @@ void Phase2L1CaloL1RCTEmulator::fillDescriptions(edm::ConfigurationDescriptions&
   edm::ParameterSetDescription desc;
   desc.add<edm::InputTag>("ecalTPEB", edm::InputTag("simEcalEBTriggerPrimitiveDigis"));
   desc.add<edm::InputTag>("hcalTP", edm::InputTag("simHcalTriggerPrimitiveDigis"));
+  desc.add<edm::InputTag>("genParticles", edm::InputTag("genParticles"));
+
   {
     edm::ParameterSetDescription psd0;
     psd0.add<std::vector<double>>("etaBins",

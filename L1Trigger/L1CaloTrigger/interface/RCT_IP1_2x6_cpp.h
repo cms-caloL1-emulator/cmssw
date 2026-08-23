@@ -180,9 +180,9 @@ for(loop i=0; i<CRYSTALS_IN_ETA23; i++){
 
 getseedMax(EtaSlices, Seed) ;
 
-if (Seed.energy < (ap_uint<10>)p2rctIP1_2x6::SEED_THRESHOLD){
-       Seed.eta = (ap_uint<5>)31;
-}
+// if (Seed.energy < (ap_uint<10>)p2rctIP1_2x6::SEED_THRESHOLD){
+//        Seed.eta = (ap_uint<5>)31;
+// }
 
 }
 
