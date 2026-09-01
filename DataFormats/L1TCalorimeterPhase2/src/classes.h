@@ -19,3 +19,14 @@
 #include "DataFormats/L1TCalorimeterPhase2/interface/RCT_output.h"
 #include "DataFormats/L1TCalorimeterPhase2/interface/GCT_output.h"
 #include "DataFormats/L1TCalorimeterPhase2/interface/HF_output.h"
+#include <vector>
+
+namespace DataFormats_L1TCalorimeterPhase2 {
+
+  struct dictionary {
+
+    l1tp2::hfOutputLink hfOutputLink_;
+    std::vector<l1tp2::hfOutputLink> hfOutputLinkCollection_;
+    edm::Wrapper<std::vector<l1tp2::hfOutputLink>> hfOutputLinkCollectionWrapper_;
+  };
+}

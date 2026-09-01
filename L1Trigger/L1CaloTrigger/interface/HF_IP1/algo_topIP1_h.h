@@ -388,6 +388,15 @@ class jet{
 
 };
 
+#ifndef __SYNTHESIS__
+
+struct HFGlobalCoordDebug {
+    int eta;
+    int phi;
+};
+
+#endif
+
 class stower{
     public:
     ap_uint<12> energy;
@@ -538,7 +547,24 @@ void createSums(stregion region[N_HF_REGIONS] , sums& sum) ;
 void createJets(stower stowers[STOWERS_ETA_R][STOWERS_PHI_R+4], jet jets[5]) ;
 void createTaus(stower stowers[STOWERS_ETA_R][STOWERS_PHI_R+4], tau taus[5]) ;
 
-void algo_topIP1(ap_uint<576> link_in[N_INPUT_LINKS], ap_uint<576> link_out[N_OUTPUT_LINKS_CL1+N_OUTPUT_LINKS_MIX]);
+#ifndef __SYNTHESIS__
+
+void algo_topIP1(
+    ap_uint<576> link_in[N_INPUT_LINKS],
+    ap_uint<576> link_out[N_OUTPUT_LINKS_CL1 + N_OUTPUT_LINKS_MIX],
+    HFGlobalCoordDebug jetGlobal[N_JETS],
+    HFGlobalCoordDebug tauGlobal[N_TAUS]
+);
+
+#else
+
+void algo_topIP1(
+    ap_uint<576> link_in[N_INPUT_LINKS],
+    ap_uint<576> link_out[N_OUTPUT_LINKS_CL1 + N_OUTPUT_LINKS_MIX]
+);
+
+#endif
+
 }
 #endif
 

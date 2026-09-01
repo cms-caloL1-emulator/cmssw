@@ -82,9 +82,16 @@
 #include "L1Trigger/L1CaloTrigger/interface/HF_IP2/common/firmware/linpuppi.h"
 #include "L1Trigger/L1CaloTrigger/interface/HF_IP2/common/firmware/linpuppi_bits.h"
 #include "L1Trigger/L1CaloTrigger/interface/HF_IP2/common/firmware/linpuppi_cpp.h"
+#include "L1Trigger/L1CaloTrigger/interface/HF_IO_DumpUtils.h"
+// Adding GEN particle based stuff
+#include "DataFormats/HepMCCandidate/interface/GenParticle.h"
+
+#include "CommonTools/BaseParticlePropagator/interface/BaseParticlePropagator.h"
+#include "CommonTools/BaseParticlePropagator/interface/RawParticle.h"
 ////////////////////////////////////////////////////////////////////////////////
 
 // Declare the Phase2L1CaloL1HFEmulator class and its methods 
+
 
 
 
@@ -100,6 +107,9 @@ private:
   void produce(edm::Event&, const edm::EventSetup&) override;
 
   edm::EDGetTokenT<HcalTrigPrimDigiCollection> hfToken_;
+  edm::EDGetTokenT<reco::GenJetCollection> genJetToken_;
+  edm::EDGetTokenT<reco::GenParticleCollection> genParticleToken_;
+
 };
 
 
@@ -109,7 +119,9 @@ private:
 //Phase2L1CaloL1HFEmulator intializer, destructor, and produce methods
 
 Phase2L1CaloL1HFEmulator::Phase2L1CaloL1HFEmulator(const edm::ParameterSet& iConfig)
-    : hfToken_(consumes<HcalTrigPrimDigiCollection>(iConfig.getParameter<edm::InputTag>("hcalDigis"))) {
+    : hfToken_(consumes<HcalTrigPrimDigiCollection>(iConfig.getParameter<edm::InputTag>("hcalDigis"))),
+      genJetToken_(consumes<reco::GenJetCollection>(iConfig.getParameter<edm::InputTag>("genJets"))),
+      genParticleToken_(consumes<reco::GenParticleCollection>(iConfig.getParameter<edm::InputTag>("genParticles"))) {
   produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1PosEtaCh0");
   produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1PosEtaCh1");
   produces<l1tp2::hfOutputLinkCollection>("LinkOutIP1PosEtaCh2");
@@ -207,8 +219,50 @@ void Phase2L1CaloL1HFEmulator::produce(edm::Event& iEvent, const edm::EventSetup
   // Run algo_top (firmware code)
   ap_uint<576> link_out_ip1_pos[N_OUTPUT_LINKS_CL1 + N_OUTPUT_LINKS_MIX];
   ap_uint<576> link_out_ip1_neg[N_OUTPUT_LINKS_CL1 + N_OUTPUT_LINKS_MIX];
+
+  #ifndef __SYNTHESIS__
+
+  HFGlobalCoordDebug jetGlobalPos[N_JETS];
+  HFGlobalCoordDebug tauGlobalPos[N_TAUS];
+
+  HFGlobalCoordDebug jetGlobalNeg[N_JETS];
+  HFGlobalCoordDebug tauGlobalNeg[N_TAUS];
+
+  #endif
+
+
+  #ifndef __SYNTHESIS__
+
+  hf_ip1::algo_topIP1(link_in_pos, link_out_ip1_pos, jetGlobalPos, tauGlobalPos);
+
+  hf_ip1::algo_topIP1(link_in_neg, link_out_ip1_neg, jetGlobalNeg, tauGlobalNeg);
+
+  #else
+
   hf_ip1::algo_topIP1(link_in_pos, link_out_ip1_pos);
   hf_ip1::algo_topIP1(link_in_neg, link_out_ip1_neg);
+
+  #endif
+
+  #ifndef __SYNTHESIS__
+
+  hfdump::dumpIP1JetTauGlobalCoordinates(
+      iEvent,
+      hfdump::HFSide::Plus,
+      link_out_ip1_pos,
+      jetGlobalPos,
+      tauGlobalPos
+  );
+
+  hfdump::dumpIP1JetTauGlobalCoordinates(
+      iEvent,
+      hfdump::HFSide::Minus,
+      link_out_ip1_neg,
+      jetGlobalNeg,
+      tauGlobalNeg
+  );
+
+  #endif
 
   ap_uint<576> link_in_ip2_pos[N_HF_REGIONS];
   ap_uint<576> link_out_ip2_pos[N_HF_REGIONS];
@@ -223,6 +277,31 @@ void Phase2L1CaloL1HFEmulator::produce(edm::Event& iEvent, const edm::EventSetup
   // Run the IP2 emulator
   algo_topIP2(link_in_ip2_pos, link_out_ip2_pos);
   algo_topIP2(link_in_ip2_neg, link_out_ip2_neg);
+
+  // Dump HF inputs, outputs, decoded objects, and GEN information
+  hfdump::dumpEvent(
+      iEvent,
+      hfdump::HFSide::Plus,
+      tp_pos,
+      link_in_pos,
+      link_out_ip1_pos,
+      link_in_ip2_pos,
+      link_out_ip2_pos,
+      genJetToken_,
+      genParticleToken_
+  );
+
+  hfdump::dumpEvent(
+      iEvent,
+      hfdump::HFSide::Minus,
+      tp_neg,
+      link_in_neg,
+      link_out_ip1_neg,
+      link_in_ip2_neg,
+      link_out_ip2_neg,
+      genJetToken_,
+      genParticleToken_
+  );
 
 
   // put IP1 into output collections
@@ -253,6 +332,8 @@ void Phase2L1CaloL1HFEmulator::produce(edm::Event& iEvent, const edm::EventSetup
 void Phase2L1CaloL1HFEmulator::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
 edm::ParameterSetDescription desc;
   desc.add<edm::InputTag>("hcalDigis", edm::InputTag("simHcalTriggerPrimitiveDigis"));
+  desc.add<edm::InputTag>("genJets",edm::InputTag("ak4GenJetsNoNu", "", "HLT"));
+  desc.add<edm::InputTag>("genParticles",edm::InputTag("genParticles"));
   descriptions.addWithDefaultLabel(desc);
 }
 

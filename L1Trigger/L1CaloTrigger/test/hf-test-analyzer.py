@@ -16,12 +16,17 @@ process.load("Configuration.StandardSequences.SimL1Emulator_cff")
 process.load("Configuration.StandardSequences.EndOfProcess_cff")
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 
-process.maxEvents = cms.untracked.PSet(input=cms.untracked.int32(1))
+process.maxEvents = cms.untracked.PSet(input=cms.untracked.int32(-1))
 
 process.source = cms.Source(
     "PoolSource",
     fileNames=cms.untracked.vstring(
-        "file:///hdfs/store/user/emettner/Misc/00ea2d85-25bf-4c64-8e71-d3d6726028c4.root",
+        "file:///afs/hep.wisc.edu/home/mithakor/Phase2L1Calo/CMSSW_15_0_10/src/TestingFramework/HF/Emulator/metadata/VBFHtobb/a6b1a52c-8ae5-4642-b163-dbcf767fff9e.root",
+        "file:///afs/hep.wisc.edu/home/mithakor/Phase2L1Calo/CMSSW_15_0_10/src/TestingFramework/HF/Emulator/metadata/VBFHtobb/b4b8396b-09b7-4ac1-a33f-55d940d23e72.root",
+        "file:///afs/hep.wisc.edu/home/mithakor/Phase2L1Calo/CMSSW_15_0_10/src/TestingFramework/HF/Emulator/metadata/VBFHtobb/eef36f0f-2cab-4f39-8cb1-fcbdc47358db.root",
+        "file:///afs/hep.wisc.edu/home/mithakor/Phase2L1Calo/CMSSW_15_0_10/src/TestingFramework/HF/Emulator/metadata/VBFHtobb/f821c500-e726-43a4-9fa8-1955aa171206.root",
+        "file:///afs/hep.wisc.edu/home/mithakor/Phase2L1Calo/CMSSW_15_0_10/src/TestingFramework/HF/Emulator/metadata/VBFHtobb/fbd31dd8-2d1d-4e22-b212-0dab7077efc2.root",
+
     ),
     inputCommands=cms.untracked.vstring(
         "keep *",

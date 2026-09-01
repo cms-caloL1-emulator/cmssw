@@ -267,6 +267,51 @@ HFSTowers3[3][11] = STRegion[12].stowers[1][1] ;
 
 }
 
+	#ifndef __SYNTHESIS__
+
+	inline int globalTauEta(int localEta) {
+		// Tau uses the original 4 eta rows directly.
+		// local eta = 0..3 -> global ST eta = 0..3
+		return localEta;
+	}
+
+	inline int globalJetEta(int localEta) {
+		// createJets() embeds the 4 eta rows into rows 2..5
+		// of stowersExtended.
+		//
+		// local jet eta = 2..5 -> global ST eta = 0..3
+		return localEta - 2;
+	}
+
+	inline int globalSTPhi(int grid, int localPhi) {
+
+		// Mapping follows calculateSTregions().
+		//
+		// Grid 1:
+		//   local phi 2..9 -> global ST phi 0..7
+		//
+		// Grid 2:
+		//   local phi 2..9 -> global ST phi 6..13
+		//
+		// Grid 3:
+		//   local phi 2..9 -> global ST phi 16..23
+
+		if (grid == 1)
+			return localPhi - 2;
+
+		if (grid == 2)
+			return localPhi + 4;
+
+		if (grid == 3)
+			return localPhi + 14;
+
+		return -1;
+	}
+
+	#endif
+
+
+
 
 
 void fillOutputLink(PFcluster pfclusters[16], ap_uint<576> &linkOut){
@@ -288,7 +333,23 @@ inline void copy_to_output(ap_uint<576> link_tmp[N_OUTPUT_LINKS_CL1+N_OUTPUT_LIN
 	}
 
 
-void algo_topIP1(ap_uint<576> link_in[N_INPUT_LINKS], ap_uint<576> link_out[N_OUTPUT_LINKS_CL1+N_OUTPUT_LINKS_MIX]){
+#ifndef __SYNTHESIS__
+
+void algo_topIP1(
+    ap_uint<576> link_in[N_INPUT_LINKS],
+    ap_uint<576> link_out[N_OUTPUT_LINKS_CL1 + N_OUTPUT_LINKS_MIX],
+    HFGlobalCoordDebug jetGlobal[N_JETS],
+    HFGlobalCoordDebug tauGlobal[N_TAUS]
+) {
+
+#else
+
+void algo_topIP1(
+    ap_uint<576> link_in[N_INPUT_LINKS],
+    ap_uint<576> link_out[N_OUTPUT_LINKS_CL1 + N_OUTPUT_LINKS_MIX]
+) {
+
+#endif
 
 	// we define the towers 12x72 eta phi and create 24 regions
 	// 6x6 after adding 2 overlap becomes 10x10, where eta additions
@@ -408,6 +469,86 @@ void algo_topIP1(ap_uint<576> link_in[N_INPUT_LINKS], ap_uint<576> link_out[N_OU
 	createTaus(HFSTowers3, HFTaus3) ;
 	createJets(HFSTowersJets3, HFJets3) ;
 
+	#ifndef __SYNTHESIS__
+
+	tau HFTausGlobal1[5];
+	tau HFTausGlobal2[5];
+	tau HFTausGlobal3[5];
+
+	jet HFJetsGlobal1[5];
+	jet HFJetsGlobal2[5];
+	jet HFJetsGlobal3[5];
+
+	for (int i = 0; i < 5; ++i) {
+
+		// ------------------------------------------------------------------
+		// Copy the original candidates.
+		// Energy and all other quantities remain identical.
+		// Only eta/phi in THESE DEBUG COPIES are changed.
+		// ------------------------------------------------------------------
+
+		HFTausGlobal1[i] = HFTaus1[i];
+		HFTausGlobal2[i] = HFTaus2[i];
+		HFTausGlobal3[i] = HFTaus3[i];
+
+		HFJetsGlobal1[i] = HFJets1[i];
+		HFJetsGlobal2[i] = HFJets2[i];
+		HFJetsGlobal3[i] = HFJets3[i];
+
+
+		// ------------------------------------------------------------------
+		// Tau global coordinates
+		// ------------------------------------------------------------------
+
+		HFTausGlobal1[i].eta =
+			globalTauEta(HFTaus1[i].eta);
+
+		HFTausGlobal1[i].phi =
+			globalSTPhi(1, HFTaus1[i].phi);
+
+
+		HFTausGlobal2[i].eta =
+			globalTauEta(HFTaus2[i].eta);
+
+		HFTausGlobal2[i].phi =
+			globalSTPhi(2, HFTaus2[i].phi);
+
+
+		HFTausGlobal3[i].eta =
+			globalTauEta(HFTaus3[i].eta);
+
+		HFTausGlobal3[i].phi =
+			globalSTPhi(3, HFTaus3[i].phi);
+
+
+		// ------------------------------------------------------------------
+		// Jet global coordinates
+		// ------------------------------------------------------------------
+
+		HFJetsGlobal1[i].eta =
+			globalJetEta(HFJets1[i].eta);
+
+		HFJetsGlobal1[i].phi =
+			globalSTPhi(1, HFJets1[i].phi);
+
+
+		HFJetsGlobal2[i].eta =
+			globalJetEta(HFJets2[i].eta);
+
+		HFJetsGlobal2[i].phi =
+			globalSTPhi(2, HFJets2[i].phi);
+
+
+		HFJetsGlobal3[i].eta =
+			globalJetEta(HFJets3[i].eta);
+
+		HFJetsGlobal3[i].phi =
+			globalSTPhi(3, HFJets3[i].phi);
+	}
+
+	#endif
+
+
 	tau HFTausin[16];
 	jet HFJetsin[16];
 	tau HFTausout[16];
@@ -429,10 +570,67 @@ void algo_topIP1(ap_uint<576> link_in[N_INPUT_LINKS], ap_uint<576> link_out[N_OU
 	bubl_sorter(HFJetsin, HFJetsout);
 
 #ifndef __SYNTHESIS__
-	for(int i=0;i<15;i++){cout<<"tau "<< i << " " << HFTausin[i].energy <<endl;}
-	for(int i=0;i<15;i++){cout<<"sorted tau "<< i << " " << HFTausout[i].energy<<endl;}
-	for(int i=0;i<15;i++){cout<<"jets "<< i << " "<< HFJetsin[i].energy<<endl;}
-	for(int i=0;i<15;i++){cout<<"sorted jets " << i << " " << HFJetsout[i].energy<<endl;}
+
+tau HFTausGlobalIn[16];
+tau HFTausGlobalOut[16];
+
+jet HFJetsGlobalIn[16];
+jet HFJetsGlobalOut[16];
+
+
+// Same ordering as the real candidates
+for (int i = 0; i < 5; ++i) {
+
+    HFTausGlobalIn[i]      = HFTausGlobal1[i];
+    HFTausGlobalIn[i + 5]  = HFTausGlobal2[i];
+    HFTausGlobalIn[i + 10] = HFTausGlobal3[i];
+
+    HFJetsGlobalIn[i]      = HFJetsGlobal1[i];
+    HFJetsGlobalIn[i + 5]  = HFJetsGlobal2[i];
+    HFJetsGlobalIn[i + 10] = HFJetsGlobal3[i];
+}
+
+
+// Same sorting algorithm
+bubl_sorter(HFTausGlobalIn, HFTausGlobalOut);
+bubl_sorter(HFJetsGlobalIn, HFJetsGlobalOut);
+
+#endif
+
+#ifndef __SYNTHESIS__
+
+for (int i = 0; i < 15; ++i) {
+    cout << "sorted tau " << i
+         << " energy " << HFTausout[i].energy
+         << " local eta " << HFTausout[i].eta
+         << " local phi " << HFTausout[i].phi
+         << " global eta " << HFTausGlobalOut[i].eta
+         << " global phi " << HFTausGlobalOut[i].phi
+         << endl;
+}
+
+for (int i = 0; i < 15; ++i) {
+    cout << "sorted jet " << i
+         << " energy " << HFJetsout[i].energy
+         << " local eta " << HFJetsout[i].eta
+         << " local phi " << HFJetsout[i].phi
+         << " global eta " << HFJetsGlobalOut[i].eta
+         << " global phi " << HFJetsGlobalOut[i].phi
+         << endl;
+}
+
+
+// Pass only the 6 objects actually written to the output links
+for (int i = 0; i < N_TAUS; ++i) {
+    tauGlobal[i].eta = HFTausGlobalOut[i].eta;
+    tauGlobal[i].phi = HFTausGlobalOut[i].phi;
+}
+
+for (int i = 0; i < N_JETS; ++i) {
+    jetGlobal[i].eta = HFJetsGlobalOut[i].eta;
+    jetGlobal[i].phi = HFJetsGlobalOut[i].phi;
+}
+
 #endif
 
 	ap_uint<10> start ;
