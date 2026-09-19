@@ -700,13 +700,14 @@ inline void writeRawLinksCSVFileInDir(const std::string& dir,
   dumpRawLinksCSV(out, card, eventId, component, direction, links, nLinks, sourceLabels);
 }
 
-inline void dumpGenElectronsCSV(
+inline void dumpGenEGammasCSV(
     std::ofstream& out,
     const edm::Event& iEvent,
     const edm::EDGetTokenT<std::vector<reco::GenParticle>>& genParticleToken
 ) {
   out << "run,lumi,event,"
       << "gen_idx,pdgId,status,"
+      << "gen_type,"
       << "gen_pt,gen_eta,gen_phi,gen_energy,"
       << "gen_vx,gen_vy,gen_vz,"
       << "gen_ecal_pt,gen_ecal_eta,gen_ecal_phi,"
@@ -719,13 +720,14 @@ inline void dumpGenElectronsCSV(
   iEvent.getByToken(genParticleToken, genParticles);
 
   if (!genParticles.isValid()) {
-    std::cout << "WARNING: genParticles collection not found. GEN CSV will be empty."
+    std::cout << "WARNING: genParticles collection not found. GEN e/gamma CSV will be empty."
               << std::endl;
     return;
   }
 
   int nGenParticles = genParticles->size();
   int nGenElectrons = 0;
+  int nGenPhotons = 0;
   int nEtaPreselected = 0;
   int nPropagated = 0;
   int nAssignedToRctCard = 0;
@@ -737,12 +739,20 @@ inline void dumpGenElectronsCSV(
     const int pdgId = p.pdgId();
     const int absPdgId = std::abs(pdgId);
 
-    if (absPdgId != 11) continue;
-    nGenElectrons++;
+    const bool isElectron = (absPdgId == 11);
+    const bool isPhoton   = (pdgId == 22);
 
-    // Loose preselection before propagation.
-    // This keeps barrel-ish electrons while allowing bending.
+    if (!isElectron && !isPhoton) continue;
+
+    if (isElectron) nGenElectrons++;
+    if (isPhoton)   nGenPhotons++;
+
+    const std::string genType = isElectron ? "electron" : "photon";
+
+    // Optional loose preselection before propagation.
+    // Keep disabled for now if you want to study full acceptance.
     // if (std::abs(p.eta()) > 2.0) continue;
+
     nEtaPreselected++;
 
     RawParticle particle(p.p4());
@@ -754,15 +764,24 @@ inline void dumpGenElectronsCSV(
         0.0
     );
 
-    // CMSSW four-vectors are in GeV.
-    particle.setMass(0.000511);
+    if (isElectron) {
+      // CMSSW four-vectors are in GeV.
+      particle.setMass(0.000511);
 
-    // PDG convention: e- has pdgId = 11 and charge = -1.
-    if (pdgId > 0) {
-      particle.setCharge(-1.0);
+      // PDG convention:
+      // e-  has pdgId =  11 and charge = -1
+      // e+  has pdgId = -11 and charge = +1
+      if (pdgId > 0) {
+        particle.setCharge(-1.0);
+      }
+      else {
+        particle.setCharge(1.0);
+      }
     }
     else {
-      particle.setCharge(1.0);
+      // Photon: neutral and massless.
+      particle.setMass(0.0);
+      particle.setCharge(0.0);
     }
 
     const float field_z = 4.0;
@@ -811,6 +830,7 @@ inline void dumpGenElectronsCSV(
         << iGen << ","
         << pdgId << ","
         << p.status() << ","
+        << genType << ","
         << p.pt() << ","
         << p.eta() << ","
         << p.phi() << ","
@@ -829,9 +849,10 @@ inline void dumpGenElectronsCSV(
         << "\n";
   }
 
-  std::cout << "GEN information for event: " << iEvent.id().event()
+  std::cout << "GEN e/gamma information for event: " << iEvent.id().event()
             << " | nGenParticles = " << nGenParticles
             << " | nGenElectrons = " << nGenElectrons
+            << " | nGenPhotons = " << nGenPhotons
             << " | nEtaPreselected = " << nEtaPreselected
             << " | nPropagated = " << nPropagated
             << " | nAssignedToRctCard = " << nAssignedToRctCard

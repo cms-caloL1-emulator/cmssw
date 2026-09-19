@@ -312,7 +312,7 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
     std::ofstream genCSV(
         eventDir + "/event_" +
         std::to_string(eventId) +
-        "_gen_electrons.csv"
+        "_gen_egammas.csv"
     );
 
     if (!genCSV.is_open()) {
@@ -320,7 +320,7 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
           << "Could not open GEN CSV in " << eventDir;
     }
 
-    dumpGenElectronsCSV(
+    dumpGenEGammasCSV(
         genCSV,
         iEvent,
         genParticleToken_
