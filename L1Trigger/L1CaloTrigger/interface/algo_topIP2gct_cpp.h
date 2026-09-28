@@ -26,6 +26,64 @@
 #include "L1Trigger/L1CaloTrigger/interface/gctforgtIP2_cpp.h"
 
 namespace gctip2 {
+  #ifndef __SYNTHESIS__
+
+inline int globalEtaSTFromLocal(
+    int localEta
+) {
+
+  // IP2 physical barrel region occupies
+  // padded eta rows 2..7.
+  //
+  // 2 -> global eta ST 0
+  // ...
+  // 7 -> global eta ST 5
+
+  if (
+      localEta < 2 ||
+      localEta > 7
+  ) {
+    return -1;
+  }
+
+  return localEta - 2;
+}
+
+
+inline int globalPhiSTFromLocal(
+    int gctIndex,
+    int localPhi
+) {
+
+  // IP2 physical region occupies
+  // padded phi columns 2..9.
+
+  if (
+      localPhi < 2 ||
+      localPhi > 9
+  ) {
+    return -1;
+  }
+
+  if (
+      gctIndex < 0 ||
+      gctIndex >= 3
+  ) {
+    return -1;
+  }
+
+  // GCT1 ->  0..7
+  // GCT2 ->  8..15
+  // GCT3 -> 16..23
+
+  return
+      8 * gctIndex
+      + (localPhi - 2);
+}
+
+#endif
+
+
 namespace detail {
 
 inline void fillInputEG(const LinkWord& input0,
@@ -132,6 +190,172 @@ inline void algoTop(const std::array<LinkWord, kInputLinks>& input,
   negative.fillJetTauLink(output[4]);
   // output[5] remains zero/spare exactly as the attachment.
 }
+
+#ifndef __SYNTHESIS__
+
+inline void algoTopDebug(const std::array<LinkWord, kInputLinks>& input,
+    std::array<LinkWord, kOutputLinks>& output, int gctIndex,
+    std::array<GlobalCoordDebug,kJetsPerRegion>& positiveJetGlobal,
+    std::array<GlobalCoordDebug,kTausPerRegion>& positiveTauGlobal,
+    std::array<GlobalCoordDebug,kJetsPerRegion>& negativeJetGlobal,
+    std::array<GlobalCoordDebug,kTausPerRegion>& negativeTauGlobal
+) {
+
+  // ----------------------------------------------------------
+  // Run the original firmware algorithm first.
+  //
+  // Packed output is therefore produced ONLY by the original
+  // algoTop().
+  // ----------------------------------------------------------
+
+  algoTop(input,output);
+
+
+  // ----------------------------------------------------------
+  // Reconstruct the two IP2 regions again, only for diagnostic
+  // coordinate provenance.
+  // ----------------------------------------------------------
+
+  Region positive;
+  Region negative;
+  detail::fillInputEG(input[0], input[1], input[4], input[5], positive.gctecalclusters);
+  detail::fillInputEG(input[6], input[7], input[2], input[3],negative.gctecalclusters);
+  detail::fillInputST(input[8],input[9],input[10], input[17], input[18], input[19],positive.stowers);
+  detail::fillInputST(input[20], input[21], input[22], input[13], input[14], input[15], negative.stowers);
+
+  detail::fillOverlap(positive.stowers, negative.stowers);
+  detail::assignLocalCoordinates(positive.stowers);
+  detail::assignLocalCoordinates(negative.stowers);
+
+  // ----------------------------------------------------------
+  // Re-run only object reconstruction for diagnostic purposes.
+  //
+  // This does NOT repack or modify 'output'.
+  // ----------------------------------------------------------
+
+  createJets(positive.stowers, positive.jets);
+  createJets(negative.stowers, negative.jets);
+  createTaus(positive.stowers, positive.taus);
+  createTaus(negative.stowers, negative.taus);
+
+  // ----------------------------------------------------------
+  // Jets
+  // ----------------------------------------------------------
+
+  for (std::size_t i = 0; i < kJetsPerRegion; ++i) {
+
+    // ---------------- positive ----------------
+
+    if (positive.jets[i].energy > 0) {
+      positiveJetGlobal[i].etaST =globalEtaSTFromLocal(static_cast<int>(positive.jets[i].eta));
+      positiveJetGlobal[i].phiST = globalPhiSTFromLocal(gctIndex, static_cast<int>(positive.jets[i].phi
+              )
+          );
+
+    } else {
+
+      positiveJetGlobal[i].etaST = -1;
+      positiveJetGlobal[i].phiST = -1;
+    }
+
+
+    // ---------------- negative ----------------
+
+    if (
+        negative.jets[i].energy > 0
+    ) {
+
+      negativeJetGlobal[i].etaST =
+          globalEtaSTFromLocal(
+              static_cast<int>(
+                  negative.jets[i].eta
+              )
+          );
+
+      negativeJetGlobal[i].phiST =
+          globalPhiSTFromLocal(
+              gctIndex,
+              static_cast<int>(
+                  negative.jets[i].phi
+              )
+          );
+
+    } else {
+
+      negativeJetGlobal[i].etaST = -1;
+      negativeJetGlobal[i].phiST = -1;
+    }
+  }
+
+
+  // ----------------------------------------------------------
+  // Taus
+  // ----------------------------------------------------------
+
+  for (
+      std::size_t i = 0;
+      i < kTausPerRegion;
+      ++i
+  ) {
+
+    // ---------------- positive ----------------
+
+    if (
+        positive.taus[i].energy > 0
+    ) {
+
+      positiveTauGlobal[i].etaST =
+          globalEtaSTFromLocal(
+              static_cast<int>(
+                  positive.taus[i].eta
+              )
+          );
+
+      positiveTauGlobal[i].phiST =
+          globalPhiSTFromLocal(
+              gctIndex,
+              static_cast<int>(
+                  positive.taus[i].phi
+              )
+          );
+
+    } else {
+
+      positiveTauGlobal[i].etaST = -1;
+      positiveTauGlobal[i].phiST = -1;
+    }
+
+
+    // ---------------- negative ----------------
+
+    if (
+        negative.taus[i].energy > 0
+    ) {
+
+      negativeTauGlobal[i].etaST =
+          globalEtaSTFromLocal(
+              static_cast<int>(
+                  negative.taus[i].eta
+              )
+          );
+
+      negativeTauGlobal[i].phiST =
+          globalPhiSTFromLocal(
+              gctIndex,
+              static_cast<int>(
+                  negative.taus[i].phi
+              )
+          );
+
+    } else {
+
+      negativeTauGlobal[i].etaST = -1;
+      negativeTauGlobal[i].phiST = -1;
+    }
+  }
+}
+
+#endif
 
 }  // namespace gctip2
 

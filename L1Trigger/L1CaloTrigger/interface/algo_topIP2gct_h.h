@@ -44,6 +44,15 @@ constexpr std::size_t kObjects48PerLink = 12;
 
 using LinkWord = ap_uint<576>;
 
+#ifndef __SYNTHESIS__
+
+struct GlobalCoordDebug {
+  int etaST{-1};
+  int phiST{-1};
+};
+
+#endif
+
 struct TowerMask {
   ap_uint<1> energy{0};
   ap_uint<5> eta{31};
@@ -231,6 +240,17 @@ inline void createEGs(const std::array<GctEcalCluster, kEcalClustersPerRegion>& 
                       std::array<GctEcalCluster, kEGsPerRegion>& output);
 inline void algoTop(const std::array<LinkWord, kInputLinks>& input,
                     std::array<LinkWord, kOutputLinks>& output);
+
+#ifndef __SYNTHESIS__
+
+inline void algoTopDebug(const std::array<LinkWord, kInputLinks>& input, 
+    std::array<LinkWord, kOutputLinks>& output, int gctIndex,
+    std::array<GlobalCoordDebug, kJetsPerRegion>& positiveJetGlobal,
+    std::array<GlobalCoordDebug, kTausPerRegion>& positiveTauGlobal,
+    std::array<GlobalCoordDebug, kJetsPerRegion>& negativeJetGlobal,
+    std::array<GlobalCoordDebug, kTausPerRegion>& negativeTauGlobal);
+
+#endif
 
 }  // namespace gctip2
 

@@ -97,6 +97,7 @@ private:
   edm::EDGetTokenT<EcalEBTrigPrimDigiCollection> ecalTPEBToken_;
   edm::EDGetTokenT<edm::SortedCollection<HcalTriggerPrimitiveDigi>> hcalTPToken_;
   edm::EDGetTokenT<std::vector<reco::GenParticle>> genParticleToken_; // For Gen Particles
+  bool enableDump_;
 
   edm::ESGetToken<CaloTPGTranscoder, CaloTPGRecord> decoderTag_;
 
@@ -115,6 +116,7 @@ Phase2L1CaloL1RCTEmulator::Phase2L1CaloL1RCTEmulator(const edm::ParameterSet& iC
     : ecalTPEBToken_(consumes<EcalEBTrigPrimDigiCollection>(iConfig.getParameter<edm::InputTag>("ecalTPEB"))),
       hcalTPToken_(consumes<edm::SortedCollection<HcalTriggerPrimitiveDigi>>(iConfig.getParameter<edm::InputTag>("hcalTP"))),
       genParticleToken_(consumes<std::vector<reco::GenParticle>>(iConfig.getParameter<edm::InputTag>("genParticles"))),
+      enableDump_(iConfig.getParameter<bool>("enableDump")),
       decoderTag_(esConsumes<CaloTPGTranscoder, CaloTPGRecord>(edm::ESInputTag("", ""))),
       caloGeometryTag_(esConsumes<CaloGeometry, CaloGeometryRecord>(edm::ESInputTag("", ""))),
       hbTopologyTag_(esConsumes<HcalTopology, HcalRecNumberingRecord>(edm::ESInputTag("", ""))) {
@@ -132,9 +134,10 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
   std::unique_ptr<l1tp2::rctOutputLinkCollection> link_out1(make_unique<l1tp2::rctOutputLinkCollection>());
   std::unique_ptr<l1tp2::rctOutputLinkCollection> link_out2(make_unique<l1tp2::rctOutputLinkCollection>());
   std::unique_ptr<l1tp2::rctOutputLinkCollection> link_out3(make_unique<l1tp2::rctOutputLinkCollection>());
-
-  std::cout << "Starting the RCT Emulator..." << std::endl;
-
+  
+  if (enableDump_) {
+    std::cout << "Starting the RCT Emulator..." << std::endl;
+  }
   const unsigned long long eventId = iEvent.id().event();
 
 
@@ -303,7 +306,7 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
   // std::cout << "Card 23, link (16,5): " << (bitset<576>)cardsECAL[23].getLink(16, 5).Data() << std::endl;
 
   // Dumping the propagated GEN-electron information
-  {
+  if (enableDump_) {
     const std::string eventDir =
         "rct_IO/event_" + std::to_string(eventId);
 
@@ -329,13 +332,17 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
 
   // Loop through cards
   for(int cc=0; cc < p2rctIO::N_CARDS; cc++) {
-    DumpDirs dirs = makeDumpDirs(cc, eventId);
-    ensureDumpDirs(dirs);
+    DumpDirs dirs;
+
+    if (enableDump_) {
+      dirs = makeDumpDirs(cc, eventId);
+      ensureDumpDirs(dirs);
+    }
 
     const std::string prefix =
         "card_" + std::to_string(cc) + "_";
 
-    {
+    if (enableDump_){
       std::ofstream crystalCSV(
           dirs.crystals + "/" +
           prefix + "input_crystals.csv"
@@ -378,16 +385,17 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
     p2rctIP1_2x6::algo_top(link_in_SLR0, link_outIP1_SLR0);
 
     // Dumping all the I/O related to IP1
-    writeRawLinksCSVFileInDir(dirs.inputIP1, cc, eventId, "IP1_SLR3_5x6", "input", link_in_SLR3, static_cast<int>(link_in_SLR3_vec.size()));
-    writeRawLinksCSVFileInDir(dirs.inputIP1, cc, eventId, "IP1_SLR2_5x6", "input", link_in_SLR2, static_cast<int>(link_in_SLR2_vec.size()));
-    writeRawLinksCSVFileInDir(dirs.inputIP1, cc, eventId, "IP1_SLR1_5x6", "input", link_in_SLR1, static_cast<int>(link_in_SLR1_vec.size()));
-    writeRawLinksCSVFileInDir(dirs.inputIP1, cc, eventId, "IP1_SLR0_2x6", "input", link_in_SLR0, static_cast<int>(link_in_SLR0_vec.size()));
+    if (enableDump_){
+      writeRawLinksCSVFileInDir(dirs.inputIP1, cc, eventId, "IP1_SLR3_5x6", "input", link_in_SLR3, static_cast<int>(link_in_SLR3_vec.size()));
+      writeRawLinksCSVFileInDir(dirs.inputIP1, cc, eventId, "IP1_SLR2_5x6", "input", link_in_SLR2, static_cast<int>(link_in_SLR2_vec.size()));
+      writeRawLinksCSVFileInDir(dirs.inputIP1, cc, eventId, "IP1_SLR1_5x6", "input", link_in_SLR1, static_cast<int>(link_in_SLR1_vec.size()));
+      writeRawLinksCSVFileInDir(dirs.inputIP1, cc, eventId, "IP1_SLR0_2x6", "input", link_in_SLR0, static_cast<int>(link_in_SLR0_vec.size()));
 
-    writeRawLinksCSVFileInDir(dirs.outputIP1, cc, eventId, "IP1_SLR3_5x6", "output", link_outIP1_SLR3, p2rctIP1_5x6::N_OUTPUT_LINKS);
-    writeRawLinksCSVFileInDir(dirs.outputIP1, cc, eventId, "IP1_SLR2_5x6", "output", link_outIP1_SLR2, p2rctIP1_5x6::N_OUTPUT_LINKS);
-    writeRawLinksCSVFileInDir(dirs.outputIP1, cc, eventId, "IP1_SLR1_5x6", "output", link_outIP1_SLR1, p2rctIP1_5x6::N_OUTPUT_LINKS);
-    writeRawLinksCSVFileInDir(dirs.outputIP1, cc, eventId, "IP1_SLR0_2x6", "output", link_outIP1_SLR0, p2rctIP1_2x6::N_OUTPUT_LINKS);
-    
+      writeRawLinksCSVFileInDir(dirs.outputIP1, cc, eventId, "IP1_SLR3_5x6", "output", link_outIP1_SLR3, p2rctIP1_5x6::N_OUTPUT_LINKS);
+      writeRawLinksCSVFileInDir(dirs.outputIP1, cc, eventId, "IP1_SLR2_5x6", "output", link_outIP1_SLR2, p2rctIP1_5x6::N_OUTPUT_LINKS);
+      writeRawLinksCSVFileInDir(dirs.outputIP1, cc, eventId, "IP1_SLR1_5x6", "output", link_outIP1_SLR1, p2rctIP1_5x6::N_OUTPUT_LINKS);
+      writeRawLinksCSVFileInDir(dirs.outputIP1, cc, eventId, "IP1_SLR0_2x6", "output", link_outIP1_SLR0, p2rctIP1_2x6::N_OUTPUT_LINKS);
+
     // Decoded IP1 outputs.
     {
       std::ofstream csv(dirs.decodedIP1 + "/" + prefix + "SLR3_emu_decoded.csv");
@@ -413,6 +421,7 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
       writeCSVHeader(csv);
       dumpDecodedIP1CSV(csv,"SLR0","2x6",3,12,link_outIP1_SLR0);
     }
+  }
 
 
     // Reorganize links to be input links for IP21
@@ -433,6 +442,7 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
     // I/O for IP21
     const std::vector<std::string> ip21Sources = makeIP21InputSources();
 
+    if (enableDump_){
     writeRawLinksCSVFileInDir(dirs.inputIP21, cc, eventId, "IP21", "input", link_inIP21, p2rctIP21::N_INPUT_LINKS, &ip21Sources);
     writeRawLinksCSVFileInDir(dirs.outputIP21, cc, eventId, "IP21", "output", link_outIP21,p2rctIP21::N_OUTPUT_LINKS);
     // IP21 input ECAL clusters: SLR3, SLR2, and SLR1.
@@ -478,6 +488,7 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
       std::ofstream csv(dirs.decodedIP21 + "/" + prefix + "IP21_output_towers_SLR0_decoded.csv");
       dumpDecodedTowerLinksCSV(csv, cc, eventId, "IP21", "output", link_outIP21,{7}, 12);
     }
+  }
 
 
     // Initialize output links for IP22
@@ -485,6 +496,8 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
 
     // Apply IP22 algo_top (link_outIP21 = link_inIP22)
     p2rctIP22::algo_top(link_outIP21, link_outIP22);
+    
+    if (enableDump_){
 
     writeRawLinksCSVFileInDir(dirs.inputIP22, cc, eventId, "IP22", "input", link_outIP21, p2rctIP22::N_INPUT_LINKS);
     writeRawLinksCSVFileInDir(dirs.outputIP22, cc, eventId, "IP22", "output", link_outIP22, p2rctIP22::N_OUTPUT_LINKS);
@@ -532,6 +545,8 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
       std::ofstream csv(dirs.decodedIP22 + "/" + prefix + "IP22_output_towers_SLR0_decoded.csv");
       dumpDecodedTowerLinksCSV(csv, cc, eventId, "IP22", "output", link_outIP22, {4}, 12);
     }
+
+  }
 
     // Append HCAL links to link_outIP22 to form link_inIP3
     ap_uint<576> link_inIP3[p2rctIP3::N_INPUT_LINKS];
@@ -583,6 +598,8 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
     // Initialize output links for IP3
     ap_uint<576> link_outIP3[p2rctIP3::N_OUTPUT_LINKS];
 
+    if (enableDump_){
+
 
     // I/O for IP3
     writeRawLinksCSVFileInDir(dirs.inputIP3, cc, eventId, "IP3", "input", link_inIP3, p2rctIP3::N_INPUT_LINKS);
@@ -611,6 +628,7 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
       std::ofstream csv(dirs.decodedIP3 + "/" + prefix + "IP3_input_ecal_towers_SLR0_decoded.csv");
       dumpDecodedTowerLinksCSV(csv, cc, eventId, "IP3", "input", link_inIP3, {4}, 12);
     }
+  }
 
     // Apply IP3 algo_top, or algo_top_HCALsecondhalfstarts
     if (!secondhalfstarts) {
@@ -620,11 +638,13 @@ void Phase2L1CaloL1RCTEmulator::produce(edm::Event& iEvent, const edm::EventSetu
       p2rctIP3::algo_top_HCALsecondhalfstarts(link_inIP3, link_outIP3);
     }
 
+    if (enableDump_){
     writeRawLinksCSVFileInDir(dirs.outputIP3, cc, eventId, "IP3", "output", link_outIP3, p2rctIP3::N_OUTPUT_LINKS);
     {
       std::ofstream csv(dirs.decodedIP3 + "/" + prefix + "IP3_output_decoded.csv");
       dumpDecodedIP3OutputCSV(csv, cc, eventId, link_outIP3);
     }
+  }
 
     // // Print outputs for comparison purposes
     // std::cout << "------------------------------" << std::endl;
@@ -664,6 +684,7 @@ void Phase2L1CaloL1RCTEmulator::fillDescriptions(edm::ConfigurationDescriptions&
   desc.add<edm::InputTag>("ecalTPEB", edm::InputTag("simEcalEBTriggerPrimitiveDigis"));
   desc.add<edm::InputTag>("hcalTP", edm::InputTag("simHcalTriggerPrimitiveDigis"));
   desc.add<edm::InputTag>("genParticles", edm::InputTag("genParticles"));
+  desc.add<bool>("enableDump", true);
 
   {
     edm::ParameterSetDescription psd0;

@@ -66,6 +66,12 @@
 #include "L1Trigger/L1CaloTrigger/interface/gctforgtIP2_cpp.h"
 #include "L1Trigger/L1CaloTrigger/interface/algo_topIP2gct_cpp.h"
 
+#include "DataFormats/HepMCCandidate/interface/GenParticle.h"
+#include "DataFormats/JetReco/interface/GenJet.h"
+#include "DataFormats/JetReco/interface/GenJetCollection.h"
+
+#include "L1Trigger/L1CaloTrigger/interface/GCT_IO_DumpUtils.h"
+
 class Phase2L1CaloL1GCTEmulator : public edm::stream::EDProducer<> {
 public:
   explicit Phase2L1CaloL1GCTEmulator(const edm::ParameterSet&);
@@ -92,10 +98,24 @@ private:
   using IP2Input = std::array<LinkWord, gctip2::kInputLinks>;
   using IP2Output = std::array<LinkWord, gctip2::kOutputLinks>;
 
+  #ifndef __SYNTHESIS__
+
+  struct IP2GlobalDebug {
+  std::array<gctip2::GlobalCoordDebug, gctip2::kJetsPerRegion> positiveJets{};
+  std::array<gctip2::GlobalCoordDebug, gctip2::kTausPerRegion> positiveTaus{};
+  std::array<gctip2::GlobalCoordDebug, gctip2::kJetsPerRegion> negativeJets{};
+  std::array<gctip2::GlobalCoordDebug, gctip2::kTausPerRegion> negativeTaus{};
+  };
+  #endif
+
   edm::EDGetTokenT<RCTCollection> link0Src_;
   edm::EDGetTokenT<RCTCollection> link1Src_;
   edm::EDGetTokenT<RCTCollection> link2Src_;
   edm::EDGetTokenT<RCTCollection> link3Src_;
+  
+  edm::EDGetTokenT<reco::GenJetCollection> genJetToken_;
+  edm::EDGetTokenT<reco::GenParticleCollection> genParticleToken_;
+  bool enableDump_;
 
   LinkWord getRCTLink(const RCTCollection& link0,
                       const RCTCollection& link1,
@@ -118,7 +138,16 @@ private:
   IP1Output runIP1(const IP1Input& input) const;
   static LinkWord transposeIP1STForIP2(const LinkWord& input);
   IP2Input buildIP2Input(const IP1Output& slr1, const IP1Output& slr3) const;
+  
+  #ifndef __SYNTHESIS__
+
+  IP2Output runIP2(const IP2Input& input, int gctIndex, IP2GlobalDebug& debug) const;
+  
+  #else
+
   IP2Output runIP2(const IP2Input& input) const;
+  
+  #endif
 
   static int pairToNegativeCard(int pairIndex) { return 2 * pairIndex; }
   static int pairToPositiveCard(int pairIndex) { return 2 * pairIndex + 1; }
@@ -128,7 +157,11 @@ Phase2L1CaloL1GCTEmulator::Phase2L1CaloL1GCTEmulator(const edm::ParameterSet& co
     : link0Src_(consumes<RCTCollection>(config.getParameter<edm::InputTag>("LinkOut0"))),
       link1Src_(consumes<RCTCollection>(config.getParameter<edm::InputTag>("LinkOut1"))),
       link2Src_(consumes<RCTCollection>(config.getParameter<edm::InputTag>("LinkOut2"))),
-      link3Src_(consumes<RCTCollection>(config.getParameter<edm::InputTag>("LinkOut3"))) {
+      link3Src_(consumes<RCTCollection>(config.getParameter<edm::InputTag>("LinkOut3"))),
+      genJetToken_(consumes<reco::GenJetCollection>(config.getParameter<edm::InputTag>("genJets"))),
+      genParticleToken_(consumes<reco::GenParticleCollection>(config.getParameter<edm::InputTag>("genParticles"))),
+      enableDump_(config.getParameter<bool>("enableDump"))
+      {
   static_assert(kLinksPerIP1Input == N_INPUT_LINKS,
                 "The CMSSW IP1 router must provide exactly the firmware N_INPUT_LINKS.");
   static_assert(kIP1OutputLinks >= 21, "IP2 routing requires all 21 IP1 output links.");
@@ -361,11 +394,27 @@ Phase2L1CaloL1GCTEmulator::IP2Input Phase2L1CaloL1GCTEmulator::buildIP2Input(
   return output;
 }
 
-Phase2L1CaloL1GCTEmulator::IP2Output Phase2L1CaloL1GCTEmulator::runIP2(const IP2Input& input) const {
+#ifndef __SYNTHESIS__
+
+Phase2L1CaloL1GCTEmulator::IP2Output
+Phase2L1CaloL1GCTEmulator::runIP2(const IP2Input& input, int gctIndex, IP2GlobalDebug& debug) const {
   IP2Output output{};
+
+  gctip2::algoTopDebug(input,output, gctIndex, debug.positiveJets, debug.positiveTaus, debug.negativeJets, debug.negativeTaus);
+  return output;
+}
+
+#else
+
+Phase2L1CaloL1GCTEmulator::IP2Output
+Phase2L1CaloL1GCTEmulator::runIP2(const IP2Input& input) const {
+  IP2Output output{};
+
   gctip2::algoTop(input, output);
   return output;
 }
+
+#endif
 
 void Phase2L1CaloL1GCTEmulator::produce(edm::Event& event, const edm::EventSetup&) {
   const auto link0 = event.getHandle(link0Src_);
@@ -384,12 +433,14 @@ void Phase2L1CaloL1GCTEmulator::produce(edm::Event& event, const edm::EventSetup
       "GCT2SLR1PostIP1", "GCT3SLR3PostIP1", "GCT3SLR1PostIP1"}};
   const std::array<std::string, kNGCTCards> preIP2Names{{"GCT1PreIP2", "GCT2PreIP2", "GCT3PreIP2"}};
   const std::array<std::string, kNGCTCards> postIP2Names{{"GCT1PostIP2", "GCT2PostIP2", "GCT3PostIP2"}};
+  const std::array<std::string, kNGCTSLRs> dumpSLRLabels{{"GCT1SLR3", "GCT1SLR1", "GCT2SLR3","GCT2SLR1", "GCT3SLR3","GCT3SLR1"}};
 
   std::array<std::unique_ptr<RCTCollection>, kNGCTSLRs> preIP1Products;
   std::array<std::unique_ptr<GCTCollection>, kNGCTSLRs> postIP1Products;
   std::array<std::unique_ptr<GCTCollection>, kNGCTCards> preIP2Products;
   std::array<std::unique_ptr<GCTCollection>, kNGCTCards> postIP2Products;
   std::array<IP1Output, kNGCTSLRs> ip1Outputs{};
+  
 
   for (int slr = 0; slr < kNGCTSLRs; ++slr) {
     preIP1Products[slr] = std::make_unique<RCTCollection>();
@@ -401,6 +452,12 @@ void Phase2L1CaloL1GCTEmulator::produce(edm::Event& event, const edm::EventSetup
     }
 
     ip1Outputs[slr] = runIP1(ip1Input);
+    if (enableDump_) {
+      gctdump::dumpRawLinks(event, dumpSLRLabels[slr], "IP1", "input", ip1Input);
+      gctdump::dumpRawLinks(event, dumpSLRLabels[slr], "IP1", "output", ip1Outputs[slr]);
+      gctdump::dumpPostIP1Decoded(event, dumpSLRLabels[slr], ip1Outputs[slr]);
+    }
+
     for (const LinkWord& word : ip1Outputs[slr]) {
       postIP1Products[slr]->emplace_back(word);
     }
@@ -419,7 +476,32 @@ void Phase2L1CaloL1GCTEmulator::produce(edm::Event& event, const edm::EventSetup
       preIP2Products[gct]->emplace_back(word);
     }
 
+    #ifndef __SYNTHESIS__
+
+    IP2GlobalDebug coordDebug{}; 
+    const IP2Output ip2Output = runIP2(ip2Input, gct, coordDebug);
+    
+    #else
+    
     const IP2Output ip2Output = runIP2(ip2Input);
+
+    #endif
+
+    const std::string dumpLabel ="GCT"+ std::to_string(gct + 1);
+    if (enableDump_) {
+      gctdump::dumpRawLinks(event, dumpLabel, "IP2", "input", ip2Input);
+      gctdump::dumpPreIP2Decoded(event, dumpLabel, ip2Input);
+      gctdump::dumpRawLinks(event, dumpLabel, "IP2", "output", ip2Output);
+    }
+
+    #ifndef __SYNTHESIS__
+    if (enableDump_) {
+    gctdump::dumpPostIP2Decoded(event, dumpLabel, gct, ip2Output, coordDebug.positiveJets, coordDebug.positiveTaus, coordDebug.negativeJets, coordDebug.negativeTaus);
+    }
+
+    #endif
+
+
     for (const LinkWord& word : ip2Output) {
       postIP2Products[gct]->emplace_back(word);
     }
@@ -438,6 +520,10 @@ void Phase2L1CaloL1GCTEmulator::produce(edm::Event& event, const edm::EventSetup
     event.put(std::move(preIP2Products[gct]), preIP2Names[gct]);
     event.put(std::move(postIP2Products[gct]), postIP2Names[gct]);
   }
+
+  if (enableDump_) {
+  gctdump::dumpGEN(event, genJetToken_, genParticleToken_);
+  }
 }
 
 void Phase2L1CaloL1GCTEmulator::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
@@ -446,7 +532,11 @@ void Phase2L1CaloL1GCTEmulator::fillDescriptions(edm::ConfigurationDescriptions&
   description.add<edm::InputTag>("LinkOut1", edm::InputTag("l1tPhase2RCTEmulatorProducer", "LinkOut1"));
   description.add<edm::InputTag>("LinkOut2", edm::InputTag("l1tPhase2RCTEmulatorProducer", "LinkOut2"));
   description.add<edm::InputTag>("LinkOut3", edm::InputTag("l1tPhase2RCTEmulatorProducer", "LinkOut3"));
+  description.add<edm::InputTag>("genJets", edm::InputTag("ak4GenJetsNoNu","", "HLT"));
+  description.add<edm::InputTag>("genParticles",edm::InputTag("genParticles"));
+  description.add<bool>("enableDump", true);
   descriptions.add("Phase2L1CaloL1GCTEmulator", description);
+  
 }
 
 DEFINE_FWK_MODULE(Phase2L1CaloL1GCTEmulator);

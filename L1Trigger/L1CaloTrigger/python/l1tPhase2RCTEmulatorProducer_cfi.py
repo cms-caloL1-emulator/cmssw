@@ -3,7 +3,9 @@ import FWCore.ParameterSet.Config as cms
 l1tPhase2RCTEmulatorProducer = cms.EDProducer("Phase2L1CaloL1RCTEmulator",
     ecalTPEB = cms.InputTag("simEcalEBTriggerPrimitiveDigis"),
     hcalTP = cms.InputTag("simHcalTriggerPrimitiveDigis"),
-    genParticles = cms.InputTag("genParticles", "", "HLT")
+    genParticles = cms.InputTag("genParticles", "", "HLT"),
+    enableDump = cms.bool(True),
+
 )
 
 from Configuration.ProcessModifiers.premix_stage2_cff import premix_stage2

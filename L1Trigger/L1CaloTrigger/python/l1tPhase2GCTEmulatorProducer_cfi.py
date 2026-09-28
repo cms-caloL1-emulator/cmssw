@@ -14,4 +14,9 @@ l1tPhase2GCTEmulatorProducer = cms.EDProducer(
     LinkOut1=cms.InputTag("l1tPhase2RCTEmulatorProducer", "LinkOut1"),
     LinkOut2=cms.InputTag("l1tPhase2RCTEmulatorProducer", "LinkOut2"),
     LinkOut3=cms.InputTag("l1tPhase2RCTEmulatorProducer", "LinkOut3"),
+    genJets = cms.InputTag("ak4GenJetsNoNu","","HLT"),
+    genParticles = cms.InputTag("genParticles", "", "HLT"),
+    enableDump = cms.bool(True),
+
+
 )
