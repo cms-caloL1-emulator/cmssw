@@ -20,12 +20,18 @@ def _dmx_input_links(module_label):
 # The current MHH firmware wrapper implements one eta-side/Card-A data path.
 # Clone this pair with zSide=-1 when a second MHH instance is configured.
 l1tPhase2L1DMXEmulatorPositive = l1tPhase2L1DMXEmulator.clone(zSide=1)
+l1tPhase2L1DMXEmulatorNegative = l1tPhase2L1DMXEmulator.clone(zSide=-1)
 
-l1tPhase2L1MHHFromDMX = l1tPhase2L1MHHEmulator.clone(
+l1tPhase2L1MHHFromDMXPositive = l1tPhase2L1MHHEmulator.clone(
     inputLinks=_dmx_input_links("l1tPhase2L1DMXEmulatorPositive")
+)
+l1tPhase2L1MHHFromDMXNegative = l1tPhase2L1MHHEmulator.clone(
+    inputLinks=_dmx_input_links("l1tPhase2L1DMXEmulatorNegative")
 )
 
 l1tPhase2L1MHHFromDMXTask = cms.Task(
     l1tPhase2L1DMXEmulatorPositive,
-    l1tPhase2L1MHHFromDMX,
+    l1tPhase2L1DMXEmulatorNegative,
+    l1tPhase2L1MHHFromDMXPositive,
+    l1tPhase2L1DMXEmulatorNegative,
 )
