@@ -4,6 +4,8 @@
 #include "common/puppi.h"
 #include "common/pf.h"
 
+namespace p2hf_IP2{
+
 // Create PFRegion for each HF region
 l1ct::PFRegion createPFRegion(int r) {
     l1ct::PFRegion region;
@@ -114,3 +116,5 @@ void puppi_top_arrays(
         fwdlinpuppi(regions[r], caloin[r], puppiOut[r]);
     }
 }
+
+} // namespace p2hf_IP2

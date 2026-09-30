@@ -1,6 +1,8 @@
 #include "algo_topIP1_h.h"
 #include "bubl_sorter_h.h"
 
+namespace p2hf_IP1 {
+
 void processInputLinks(ap_uint<576> link_in[N_INPUT_LINKS], hfregion HFRegion[N_HF_REGIONS]){
 
 // -2 because last 2 are 4x towers 
@@ -456,3 +458,5 @@ void algo_topIP1(ap_uint<576> link_in[N_INPUT_LINKS], ap_uint<576> link_out[N_OU
 //#endif
 
 }
+
+} // namespace p2hf_IP1

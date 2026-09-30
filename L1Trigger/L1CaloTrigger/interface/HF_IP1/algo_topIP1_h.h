@@ -7,6 +7,8 @@
 #include <utility>
 #include <stdint.h>
 
+namespace p2hf_IP1 {
+
 
 #define N_INPUT_LINKS  18 
 #define N_OUTPUT_LINKS_CL1  6
@@ -534,6 +536,8 @@ void createJets(stower stowers[STOWERS_ETA_R][STOWERS_PHI_R+4], jet jets[5]) ;
 void createTaus(stower stowers[STOWERS_ETA_R][STOWERS_PHI_R+4], tau taus[5]) ;
 
 void algo_topIP1(ap_uint<576> link_in[N_INPUT_LINKS], ap_uint<576> link_out[N_OUTPUT_LINKS_CL1+N_OUTPUT_LINKS_MIX]);
+
+} // namespace p2hf_IP1
 
 #endif
 

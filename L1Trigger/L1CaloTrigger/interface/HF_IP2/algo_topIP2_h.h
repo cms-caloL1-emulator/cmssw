@@ -12,6 +12,8 @@
 #include "common/pf.h"
 #include "common/layer1_multiplicities.h"
 
+namespace p2hf_IP2 {
+
 #define N_HF_REGIONS  6
 #define NCALO         8
 #define LINK_WIDTH    576
@@ -41,5 +43,7 @@ void puppi_sector(
 
 //to create region configuration required for fwdlinpuppi
 l1ct::PFRegion createPFRegion(int region);
+
+} // namespace p2hf_IP2
 
 #endif
