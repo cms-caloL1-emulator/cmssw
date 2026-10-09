@@ -69,8 +69,9 @@
 namespace {
 std::vector<uint64_t> toWords(const ap_uint<576>& link) {
   std::vector<uint64_t> words;
+  int kWordsPerLink = 9;
   words.reserve(kWordsPerLink);
-  for (unsigned int i = 0; i < kWordsPerLink; ++i) {
+  for (int i = 0; i < kWordsPerLink; ++i) {
     words.push_back(link.range(i * 64 + 63, i * 64).to_uint64());
   }
   return words;
@@ -452,7 +453,7 @@ void Phase2L1CaloL1GCTEmulator::produce(edm::Event& event, const edm::EventSetup
     event.put(std::move(preIP2Products[gct]), preIP2Names[gct]);
     for (int i = 0; i < gctip2::kOutputLinks; ++i) {
       auto words = std::make_unique<std::vector<uint64_t> >(toWords(postIP2Products[gct][i]));
-      events.put(std::move(words), std::string(postIP2Names[gct]) + "LinkOut" + std::to_string(i));
+      event.put(std::move(words), std::string(postIP2Names[gct]) + "LinkOut" + std::to_string(i));
     }
   }
 }

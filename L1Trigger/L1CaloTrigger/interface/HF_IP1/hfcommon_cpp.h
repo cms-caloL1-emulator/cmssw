@@ -1,5 +1,6 @@
 #include "algo_topIP1_h.h"
 
+namespace p2hf_IP1{
 
 void getseedpositionPF(hftower towers[N_HF_TOWERS_REGION_ETA+4][N_HF_TOWERS_REGION_PHI+4], hftower &Seed){
 	hftower Seed1 ; hftower Seed2; // this helps very little but some
@@ -218,5 +219,7 @@ void createJets(stower stowers[STOWERS_ETA_R][STOWERS_PHI_R+4], jet jets[5]) {
 		getJet(stowersExtended,Seed,jets[i]) ;
 		zerrostowersJet(stowersExtended, Seed) ;
 	}
+}
+
 }
 	

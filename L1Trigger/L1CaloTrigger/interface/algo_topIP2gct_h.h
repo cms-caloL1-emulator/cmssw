@@ -30,17 +30,17 @@
 
 namespace gctip2 {
 
-constexpr std::size_t kInputLinks = 24;
-constexpr std::size_t kOutputLinks = 6;
-constexpr std::size_t kRegionEta = 6;
-constexpr std::size_t kRegionPhi = 8;
-constexpr std::size_t kPaddedEta = kRegionEta + 4;
-constexpr std::size_t kPaddedPhi = kRegionPhi + 4;
-constexpr std::size_t kEcalClustersPerRegion = 72;
-constexpr std::size_t kJetsPerRegion = 6;
-constexpr std::size_t kTausPerRegion = 6;
-constexpr std::size_t kEGsPerRegion = 6;
-constexpr std::size_t kObjects48PerLink = 12;
+static constexpr int kInputLinks = 24;
+static constexpr int kOutputLinks = 6;
+static constexpr int kRegionEta = 6;
+static constexpr int kRegionPhi = 8;
+static constexpr int kPaddedEta = kRegionEta + 4;
+static constexpr int kPaddedPhi = kRegionPhi + 4;
+static constexpr int kEcalClustersPerRegion = 72;
+static constexpr int kJetsPerRegion = 6;
+static constexpr int kTausPerRegion = 6;
+static constexpr int kEGsPerRegion = 6;
+static constexpr int kObjects48PerLink = 12;
 
 using LinkWord = ap_uint<576>;
 
