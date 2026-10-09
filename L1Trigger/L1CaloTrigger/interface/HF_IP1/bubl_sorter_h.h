@@ -4,6 +4,7 @@
 #include "ap_int.h"
 #include "algo_topIP1_h.h"
 
+namespace p2hf_IP1{
 
 template <typename T, int N>
 void bubl_sorter(T (&in)[N], T (&out)[N]) {
@@ -23,6 +24,8 @@ void bubl_sorter(T (&in)[N], T (&out)[N]) {
     for (loop i = 0; i < N; ++i) {
         out[i] = in[i];
     }
+}
+
 }
 
 #endif

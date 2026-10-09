@@ -7,34 +7,36 @@
 #include <utility>
 #include <stdint.h>
 
+namespace p2hf_IP1 {
 
-#define N_INPUT_LINKS  18 
-#define N_OUTPUT_LINKS_CL1  6
-#define N_OUTPUT_LINKS_MIX  3
 
-#define TOWERS_ETA 12
-#define TOWERS_PHI 72
+static constexpr int N_INPUT_LINKS = 18;
+static constexpr int N_OUTPUT_LINKS_CL1 = 6;
+static constexpr int N_OUTPUT_LINKS_MIX = 3;
 
-#define N_HF_REGIONS 24 
+static constexpr int TOWERS_ETA = 12;
+static constexpr int TOWERS_PHI = 72;
 
-#define N_HF_TOWERS_REGION_ETA 6
-#define N_HF_TOWERS_REGION_PHI 6
-#define N_HF_PFCLUSTERS_REGION 4 
+static constexpr int N_HF_REGIONS = 24;
 
-#define N_SECTORS_PF 6
+static constexpr int N_HF_TOWERS_REGION_ETA = 6;
+static constexpr int N_HF_TOWERS_REGION_PHI = 6;
+static constexpr int N_HF_PFCLUSTERS_REGION = 4;
 
-#define STOWERS_ETA_R 4
-#define STOWERS_PHI_R 8
-#define STOWERS_ETA 4
-#define STOWERS_PHI 24
-#define N_STOWERS 96
-#define N_HF_STOWERS_REGION 4
+static constexpr int N_SECTORS_PF = 6;
 
-#define TEN 10
-#define FIVE 5 
+static constexpr int STOWERS_ETA_R = 4;
+static constexpr int STOWERS_PHI_R = 8;
+static constexpr int STOWERS_ETA = 4;
+static constexpr int STOWERS_PHI = 24;
+static constexpr int N_STOWERS = 96;
+static constexpr int N_HF_STOWERS_REGION = 4;
 
-#define N_JETS 6
-#define N_TAUS 6
+static constexpr int TEN = 10;
+static constexpr int FIVE = 5; 
+
+static constexpr int N_JETS = 6;
+static constexpr int N_TAUS = 6;
 
 
 using namespace std;
@@ -534,6 +536,8 @@ void createJets(stower stowers[STOWERS_ETA_R][STOWERS_PHI_R+4], jet jets[5]) ;
 void createTaus(stower stowers[STOWERS_ETA_R][STOWERS_PHI_R+4], tau taus[5]) ;
 
 void algo_topIP1(ap_uint<576> link_in[N_INPUT_LINKS], ap_uint<576> link_out[N_OUTPUT_LINKS_CL1+N_OUTPUT_LINKS_MIX]);
+
+} // namespace p2hf_IP1
 
 #endif
 

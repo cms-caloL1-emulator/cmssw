@@ -66,6 +66,19 @@
 #include "L1Trigger/L1CaloTrigger/interface/gctforgtIP2_cpp.h"
 #include "L1Trigger/L1CaloTrigger/interface/algo_topIP2gct_cpp.h"
 
+namespace {
+std::vector<uint64_t> toWords(const ap_uint<576>& link) {
+  std::vector<uint64_t> words;
+  int kWordsPerLink = 9;
+  words.reserve(kWordsPerLink);
+  for (int i = 0; i < kWordsPerLink; ++i) {
+    words.push_back(link.range(i * 64 + 63, i * 64).to_uint64());
+  }
+  return words;
+}
+
+}  // namespace
+
 class Phase2L1CaloL1GCTEmulator : public edm::stream::EDProducer<> {
 public:
   explicit Phase2L1CaloL1GCTEmulator(const edm::ParameterSet&);
@@ -154,7 +167,9 @@ Phase2L1CaloL1GCTEmulator::Phase2L1CaloL1GCTEmulator(const edm::ParameterSet& co
     produces<GCTCollection>(name);
   }
   for (const auto& name : postIP2Names) {
-    produces<GCTCollection>(name);
+    for (int i = 0; i < gctip2::kOutputLinks; ++i) {
+      produces<std::vector<uint64_t> >(std::string(name) + "LinkOut" + std::to_string(i));
+    }
   }
 }
 
@@ -436,7 +451,10 @@ void Phase2L1CaloL1GCTEmulator::produce(edm::Event& event, const edm::EventSetup
   }
   for (int gct = 0; gct < kNGCTCards; ++gct) {
     event.put(std::move(preIP2Products[gct]), preIP2Names[gct]);
-    event.put(std::move(postIP2Products[gct]), postIP2Names[gct]);
+    for (int i = 0; i < gctip2::kOutputLinks; ++i) {
+      auto words = std::make_unique<std::vector<uint64_t> >(toWords(postIP2Products[gct][i]));
+      event.put(std::move(words), std::string(postIP2Names[gct]) + "LinkOut" + std::to_string(i));
+    }
   }
 }
 
