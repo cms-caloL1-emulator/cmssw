@@ -2,6 +2,10 @@
   Description:
     Build the deterministic standalone IP1 and IP2 firmware tests.
 -->
+
+<use name="L1Trigger/L1CaloTrigger"/>
+<use name="hls"/>
+
 <bin file="test_algo_topIP2gct.cpp" name="testAlgoTopIP2gct">
   <use name="L1Trigger/L1CaloTrigger"/>
   <use name="hls"/>
@@ -11,3 +15,9 @@
   <use name="L1Trigger/L1CaloTrigger"/>
   <use name="hls"/>
 </bin>
+
+<bin file="testPhase2L1GCTSumFirmware.cpp" name="testPhase2L1GCTSumFirmware"/>
+<test name="testPhase2L1GCTSumFirmware" command="testPhase2L1GCTSumFirmware"/>
+
+<bin file="testPhase2L1MHHFirmware.cpp" name="testPhase2L1MHHFirmware"/>
+<test name="testPhase2L1MHHFirmware" command="testPhase2L1MHHFirmware"/>
