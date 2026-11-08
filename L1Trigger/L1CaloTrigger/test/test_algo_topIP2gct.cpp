@@ -5,8 +5,7 @@
  *   The expected values intentionally test what the attachment actually does,
  *   not what the interface PDF ultimately wants the subsystem to do:
  *     - fixed EG source indices 0,1,8,9,15,22;
- *     - only two populated jet slots;
- *     - only two populated tau slots;
+ *     - all six jet and tau iterations execute;
  *     - padded seed eta/phi serialized unchanged;
  *     - Ex=Ey=0 and HT equal to the interior ST-energy sum;
  *     - output link 5 remains zero.
@@ -19,6 +18,8 @@
 #include <string>
 
 #include "L1Trigger/L1CaloTrigger/interface/algo_topIP2gct_h.h"
+#include "L1Trigger/L1CaloTrigger/interface/bitonicSort32IP2_h.h"
+#include "L1Trigger/L1CaloTrigger/interface/bitonicSort32IP2_cpp.h"
 #include "L1Trigger/L1CaloTrigger/interface/gctforgtIP2_cpp.h"
 #include "L1Trigger/L1CaloTrigger/interface/algo_topIP2gct_cpp.h"
 
@@ -49,6 +50,13 @@ void putIP2OrderedST(gctip2::LinkWord& link, int slot, unsigned int energy) {
 }  // namespace
 
 int main() {
+  std::array<gctip2::GctEcalCluster, gctip2::kBitonicSortSize> unsorted{};
+  std::array<gctip2::GctEcalCluster, gctip2::kBitonicSortSize> sorted{};
+  for (std::size_t i = 0; i < unsorted.size(); ++i) {
+    unsorted[i].energy = static_cast<unsigned int>((17 * i + 5) % unsorted.size());
+  }
+  gctip2::bitonicSort32(unsorted.data(), sorted.data());
+
   std::array<gctip2::LinkWord, gctip2::kInputLinks> input{};
   std::array<gctip2::LinkWord, gctip2::kOutputLinks> output{};
 
@@ -60,11 +68,15 @@ int main() {
     putIP1EG(input[5], slot, 400 + slot, 70 + slot, 80 + slot);
   }
 
-  // input[9] becomes padded phi columns 2 and 3.  The attached ST contract is
-  // slots0..5 = eta0..5 in the first phi column and slots6..11 = eta0..5 in
-  // the second phi column.
-  putIP2OrderedST(input[9], 0, 10);  // padded (eta,phi)=(2,2)
-  putIP2OrderedST(input[9], 6, 5);   // padded (eta,phi)=(2,3)
+  // Six isolated towers exercise all six firmware jet/tau iterations.  The
+  // attached ST contract is slots0..5 = eta0..5 in the first phi column and
+  // slots6..11 = eta0..5 in the second phi column.
+  putIP2OrderedST(input[9], 0, 10);   // padded (eta,phi)=(2,2)
+  putIP2OrderedST(input[10], 6, 20);  // padded (eta,phi)=(2,5)
+  putIP2OrderedST(input[18], 0, 30);  // padded (eta,phi)=(2,8)
+  putIP2OrderedST(input[9], 3, 40);   // padded (eta,phi)=(5,2)
+  putIP2OrderedST(input[10], 9, 50);  // padded (eta,phi)=(5,5)
+  putIP2OrderedST(input[18], 3, 60);  // padded (eta,phi)=(5,8)
 
   gctip2::algoTop(input, output);
 

@@ -8,6 +8,7 @@
 #define Nbclusters 16
 
 using namespace std;
+namespace gctip1 {
 
 class GreaterSmaller{
 public:
@@ -15,5 +16,7 @@ public:
 };
 
 void bitonicSort16AB(PFcluster in[Nbclusters], PFcluster out[Nbclusters]);
+
+}
 
 #endif

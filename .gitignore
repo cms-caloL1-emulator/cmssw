@@ -21,3 +21,10 @@ __init__.py
 
 #ignore mac specific file
 .DS_Store
+/L1Trigger/L1CaloTrigger/test/*.root
+/L1Trigger/L1CaloTrigger/test/*.log
+/L1Trigger/L1CaloTrigger/test/hf_IO/
+/L1Trigger/L1CaloTrigger/test/hf_IO_DY_Jets/
+/L1Trigger/L1CaloTrigger/test/hf_IO_garbage/
+/L1Trigger/L1CaloTrigger/test/hf_IO_old/
+/L1Trigger/L1CaloPhase2Analyzer/
