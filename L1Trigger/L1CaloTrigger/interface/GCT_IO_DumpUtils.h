@@ -128,21 +128,29 @@ inline void writeEG64(std::ofstream& out,
                       int slot,
                       const ap_uint<64>& raw,
                       const std::string& source) {
-  EGcluster obj;
+
+  gctip1::EGcluster obj;
   obj.fillEGcluster(raw);
-  out << event.id().event() << ',' << label << ',' << link << ',' << slot
-      << ",EG," << source << ',' << formatApUint(raw) << ','
+
+  out << event.id().event() << ','
+      << label << ','
+      << link << ','
+      << slot << ','
+      << "EG" << ','
+      << source << ','
+      << formatApUint(raw) << ','
       << static_cast<unsigned>(obj.energy) << ','
       << static_cast<int>(obj.eta) << ','
       << static_cast<int>(obj.phi) << ','
       << static_cast<unsigned>(obj.hoe) << ','
-      << static_cast<unsigned>(obj.hoeWP) << ','
       << static_cast<unsigned>(obj.iso) << ','
-      << static_cast<unsigned>(obj.isoWP) << ','
-      << static_cast<unsigned>(obj.FB) << ','
+      << static_cast<unsigned>(obj.shape) << ','
+      << static_cast<unsigned>(obj.WP) << ','
       << static_cast<unsigned>(obj.timing) << ','
-      << static_cast<unsigned>(obj.shapeWP) << ','
-      << static_cast<unsigned>(obj.brems) << ",,,\n";
+      << static_cast<unsigned>(obj.brems) << ','
+      << "" << ','
+      << "" << ','
+      << static_cast<unsigned>(obj.spare) << '\n';
 }
 
 inline void writePF64(std::ofstream& out,
@@ -152,16 +160,29 @@ inline void writePF64(std::ofstream& out,
                       int slot,
                       const ap_uint<64>& raw,
                       const std::string& source) {
-  PFcluster obj;
+
+  gctip1::PFcluster obj;
   obj.fillPFcluster(raw);
-  out << event.id().event() << ',' << label << ',' << link << ',' << slot
-      << ",PF," << source << ',' << formatApUint(raw) << ','
+
+  out << event.id().event() << ','
+      << label << ','
+      << link << ','
+      << slot << ','
+      << "PF" << ','
+      << source << ','
+      << formatApUint(raw) << ','
       << static_cast<unsigned>(obj.energy) << ','
       << static_cast<int>(obj.eta) << ','
       << static_cast<int>(obj.phi) << ','
-      << static_cast<unsigned>(obj.hoe) << ",,,,,,,,,"
+      << "" << ','
+      << "" << ','
+      << "" << ','
+      << "" << ','
+      << "" << ','
+      << "" << ','
       << static_cast<unsigned>(obj.ECAL) << ','
-      << static_cast<unsigned>(obj.HCAL) << "\n";
+      << static_cast<unsigned>(obj.FB) << ','
+      << static_cast<unsigned>(obj.spare) << '\n';
 }
 
 inline void dumpPostIP1Decoded(const edm::Event& event,
@@ -175,8 +196,10 @@ inline void dumpPostIP1Decoded(const edm::Event& event,
   {
     const std::string path = dir + "/event_" + formatEvent(event) + "_" + label + "_IP1_output_objects.csv";
     std::ofstream out(path);
-    out << "event,label,link_index,slot,object_type,source,raw_hex,energy_raw,eta_raw,phi_raw,"
-           "hoe_raw,hoe_wp_raw,iso_raw,iso_wp_raw,fb_raw,timing_raw,shape_wp_raw,brems_raw,ecal_raw,hcal_raw\n";
+    out << "event,label,link_index,slot,object_type,source,raw_hex,"
+       "energy_raw,eta_raw,phi_raw,"
+       "hoe_raw,iso_raw,shape_raw,wp_raw,timing_raw,brems_raw,"
+       "ecal_raw,fb_raw,spare_raw\n";
 
     auto eg = [&](int link, int slot, const std::string& src) {
       writeEG64(out, event, label, link, slot, links[link].range(64 * slot + 63, 64 * slot), src);
@@ -216,7 +239,7 @@ inline void dumpPostIP1Decoded(const edm::Event& event,
       const int region = link - 13;
       for (int slot = 0; slot < 12; ++slot) {
         const ap_uint<48> raw = links[link].range(48 * slot + 47, 48 * slot);
-        SuperTower st;
+        gctip1::SuperTower st;
         st.fillST(raw);
         out << event.id().event() << ',' << label << ',' << link << ',' << region << ',' << slot << ','
             << formatApUint(raw) << ','
