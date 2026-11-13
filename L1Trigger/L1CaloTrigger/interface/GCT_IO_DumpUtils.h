@@ -462,7 +462,7 @@ struct PropagatedGenParticle {
 inline PropagatedGenParticle propagateToEcalEntrance(const reco::GenParticle& gen,
                                                       double magneticFieldTesla = 4.0) {
   PropagatedGenParticle result;
-  if (gen.status() != 1 || gen.charge() == 0) return result;
+  if (gen.charge() == 0) return result;
   result.attempted = true;
 
   RawParticle particle(gen.p4());
@@ -525,17 +525,19 @@ inline void dumpGenParticles(const edm::Event& event,
     const bool isPhoton = absId == 22;
     const bool isPion = absId == 211;
     const bool isTau = absId == 15;
-    const bool isQuark = absId >= 1 && absId <= 6;
+    const bool isQuark = absId > 0 && absId < 9;
     if (!(isElectron || isPhoton || isPion || isTau || isQuark)) continue;
 
     const bool hardObject = gen.status() == 23 && (isTau || isQuark);
     const bool stable = gen.status() == 1;
     const bool barrel = std::abs(gen.eta()) < kBarrelEtaMax;
-    const bool selected = barrel && ((stable && (isElectron || isPhoton || isPion)) || hardObject);
+    const bool selected =
+    ((isElectron || isPion) && barrel) ||
+    hardObject;
 
     PropagatedGenParticle prop;
-    if (stable && gen.charge() != 0 && (isElectron || isPion)) {
-      prop = propagateToEcalEntrance(gen);
+    if ((isElectron || isPion) && barrel && gen.charge() != 0) {
+    prop = propagateToEcalEntrance(gen);
     }
 
     out << event.id().run() << ',' << event.id().luminosityBlock() << ',' << event.id().event() << ','
